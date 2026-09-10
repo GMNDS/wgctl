@@ -105,6 +105,7 @@ fi
 chmod +x "${TMP_FILE}"
 
 # 5. Install to BIN_DIR
+mkdir -p "${BIN_DIR}" 2>/dev/null || sudo mkdir -p "${BIN_DIR}"
 INSTALL_CMD="cp ${TMP_FILE} ${BIN_DIR}/${BINARY_NAME}"
 if [ -w "${BIN_DIR}" ]; then
   ${INSTALL_CMD}
