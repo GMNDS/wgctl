@@ -1,0 +1,5 @@
+bin/
+.shards/
+*.dwarf
+*.tmp*
+backups/

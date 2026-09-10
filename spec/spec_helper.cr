@@ -1,0 +1,7 @@
+require "spec"
+require "../src/models/*"
+require "../src/metadata/*"
+require "../src/config/*"
+require "../src/wireguard/*"
+require "../src/output/*"
+require "../src/cli/*"

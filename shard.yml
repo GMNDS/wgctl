@@ -1,0 +1,13 @@
+name: wgctl
+version: 0.1.0
+
+authors:
+  - gmnds
+
+targets:
+  wgctl:
+    main: src/wgctl.cr
+
+crystal: '>= 1.8.0'
+
+license: MIT
