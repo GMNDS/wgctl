@@ -80,12 +80,14 @@ HELP
 wgctl peer add - Register a new peer with automatic or explicit IP
 
 USAGE:
-  wgctl peer add <name> [options]
+  wgctl peer add <name> [interface] [options]
 
 ARGUMENTS:
   <name>                          Unique friendly name for the peer (e.g. phone, alice-laptop)
+  [interface]                     WireGuard interface (optional if -i is used or only one interface exists)
 
 OPTIONS:
+  -i, --interface <name>          Specify target WireGuard interface (e.g. wg0, wg1)
   --ip <IP|auto>                  Assign specific IP (e.g. 10.13.14.9/32) or use 'auto' for next free IP
   --description <text>            Friendly description or notes (e.g. "Alice work laptop")
   --device <type>                 Device type (e.g. mobile, laptop, desktop, server)
@@ -99,6 +101,10 @@ EXAMPLES:
   # Add peer with automatic next free IP
   wgctl peer add phone --ip auto --device mobile
 
+  # Specify interface via flag or positional
+  wgctl peer add phone -i wg0 --ip auto
+  wgctl peer add phone wg0 --ip auto
+
   # Add peer with specific IP and description
   wgctl peer add office-nas --ip 10.13.14.50/32 --description "Storage Server" --device server
 
@@ -111,12 +117,14 @@ HELP
 wgctl peer edit - Edit metadata, IP, or properties of an existing peer
 
 USAGE:
-  wgctl peer edit <name|key> [options]
+  wgctl peer edit <name|key> [interface] [options]
 
 ARGUMENTS:
   <name|key>                      Peer name or base64 public key
+  [interface]                     WireGuard interface (optional if -i is used or only one interface exists)
 
 OPTIONS:
+  -i, --interface <name>          Specify target WireGuard interface (e.g. wg0, wg1)
   --name <new-name>               Rename the peer
   --description <text>            Update description
   --device <type>                 Update device type (mobile, laptop, desktop, server)
@@ -130,8 +138,9 @@ EXAMPLES:
   # Rename a peer and update description
   wgctl peer edit phone --name phone-new --description "iPhone 16 Pro"
 
-  # Change peer IP address
-  wgctl peer edit phone-new --ip 10.13.14.25/32
+  # Specify interface via flag or positional
+  wgctl peer edit phone -i wg0 --description "iPhone 16 Pro"
+  wgctl peer edit phone wg0 --ip 10.13.14.25/32
 HELP
 
         when "remove"
@@ -139,12 +148,14 @@ HELP
 wgctl peer remove - Safely remove a peer and sync kernel live
 
 USAGE:
-  wgctl peer remove <name|key> [options]
+  wgctl peer remove <name|key> [interface] [options]
 
 ARGUMENTS:
   <name|key>                      Peer name or base64 public key to remove
+  [interface]                     WireGuard interface (optional if -i is used or only one interface exists)
 
 OPTIONS:
+  -i, --interface <name>          Specify target WireGuard interface (e.g. wg0, wg1)
   --no-apply                      Do not sync interface in kernel after removing
   --dry-run                       Simulate removal without modifying files or kernel
   -c, --config <file>             Explicit path to WireGuard configuration file
@@ -155,7 +166,8 @@ NOTE:
 
 EXAMPLES:
   wgctl peer remove phone
-  wgctl peer remove 1P46Y/GkzcNjTyiq...
+  wgctl peer remove phone -i wg0
+  wgctl peer remove phone wg0
   wgctl peer remove laptop --dry-run
 HELP
 
@@ -234,12 +246,14 @@ HELP
 wgctl client - Generate WireGuard client configuration or mobile QR code
 
 USAGE:
-  wgctl client <name|key> [options]
+  wgctl client <name|key> [interface] [options]
 
 ARGUMENTS:
   <name|key>                      Peer name or base64 public key
+  [interface]                     WireGuard interface (optional if -i is used or only one interface exists)
 
 OPTIONS:
+  -i, --interface <name>          Specify target WireGuard interface (e.g. wg0, wg1)
   --qr                            Display client configuration as terminal QR code (ANSI UTF-8)
   -o, --output <file>             Save client configuration to file with strict mode 0600 permissions
   --endpoint <host:port>          Override server public endpoint (e.g. vpn.example.com:51820)
@@ -248,6 +262,10 @@ OPTIONS:
 EXAMPLES:
   # Print client configuration to terminal
   wgctl client phone
+
+  # Specify interface via flag or positional
+  wgctl client phone -i wg0
+  wgctl client phone wg0 --qr
 
   # Scan directly with the official WireGuard mobile app (iOS / Android)
   wgctl client phone --qr
@@ -271,6 +289,7 @@ ARGUMENTS:
   [interface]                     Name of interface to create (default: wg0)
 
 OPTIONS:
+  -i, --interface <name>          Name of interface to create (alias for [interface])
   --wan <interface>               External WAN network interface for NAT forwarding (e.g. eth0, ens3)
   --public-ip <IP|host>           Public IP address or hostname for clients to connect to
   --port <port>                   UDP listen port for WireGuard (default: 51820)
@@ -403,6 +422,7 @@ ARGUMENTS:
   [interface]                     WireGuard interface to inspect (auto-detected if omitted)
 
 OPTIONS:
+  -i, --interface <name>          Specify target WireGuard interface (e.g. wg0, wg1)
   --json                          Output status and peer statistics in JSON format
   -c, --config <file>             Explicit path to WireGuard configuration file
 
@@ -414,6 +434,7 @@ METRICS DISPLAYED:
 EXAMPLES:
   wgctl status
   wgctl status wg0
+  wgctl status -i wg0
   wgctl status wg0 --json
 HELP
       end
@@ -429,6 +450,7 @@ ARGUMENTS:
   [interface]                     WireGuard interface to validate
 
 OPTIONS:
+  -i, --interface <name>          Specify target WireGuard interface (e.g. wg0, wg1)
   -c, --config <file>             Explicit path to WireGuard configuration file
   --json                          Output diagnostic results in JSON format
 
@@ -442,6 +464,7 @@ CHECKS PERFORMED:
 EXAMPLES:
   wgctl check
   wgctl check wg0
+  wgctl check -i wg0
 HELP
       end
 
@@ -456,6 +479,7 @@ ARGUMENTS:
   [interface]                     WireGuard interface to synchronize (default: auto-detect)
 
 OPTIONS:
+  -i, --interface <name>          Specify target WireGuard interface (e.g. wg0, wg1)
   -c, --config <file>             Explicit path to WireGuard configuration file
 
 HOW IT WORKS:
@@ -466,6 +490,7 @@ HOW IT WORKS:
 EXAMPLES:
   wgctl apply
   wgctl apply wg0
+  wgctl apply -i wg0
 HELP
       end
 
@@ -480,6 +505,7 @@ ARGUMENTS:
   [interface]                     WireGuard interface to migrate
 
 OPTIONS:
+  -i, --interface <name>          Specify target WireGuard interface (e.g. wg0, wg1)
   --dry-run                       Preview migration without modifying configuration file
   -c, --config <file>             Explicit path to WireGuard configuration file
 
@@ -492,6 +518,7 @@ COMPATIBILITY:
 EXAMPLES:
   wgctl migrate wg0 --dry-run
   wgctl migrate wg0
+  wgctl migrate -i wg0
 HELP
       end
 
@@ -536,11 +563,14 @@ HELP
 wgctl menu - Interactive terminal management assistant (alias: tui)
 
 USAGE:
-  wgctl menu [interface]
+  wgctl menu [interface] [options]
   wgctl                          (Launched automatically when run with no arguments in a terminal)
 
 ARGUMENTS:
   [interface]                     WireGuard interface to manage (presents selector if omitted)
+
+OPTIONS:
+  -i, --interface <name>          Specify target WireGuard interface directly
 
 FEATURES:
   - Guided peer management: add, edit, rename, remove

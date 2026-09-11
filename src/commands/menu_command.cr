@@ -22,7 +22,7 @@ module Wgctl
       property selected_iface_name : String?
 
       def initialize(@context : CLI::Context, args : Array(String))
-        @selected_iface_name = args.first?
+        @selected_iface_name = @context.interface || args.first?
       end
 
       def start
@@ -169,19 +169,21 @@ module Wgctl
 
         ctx = @context.dup
         ctx.config_file = iface.config_path
+        ctx.interface = iface.name
         ctx.ip = ip
         ctx.device = device
         ctx.description = description unless description.empty?
 
         begin
-          PeerAddCommand.run(ctx, [name])
+          PeerAddCommand.run(ctx, [name, iface.name])
           puts "\nDeseja exibir o QR Code agora para conectar seu smartphone? (S/n): "
           resp = (gets || "").strip.downcase
           if resp.empty? || resp == "s" || resp == "y" || resp == "sim"
             client_ctx = @context.dup
             client_ctx.config_file = iface.config_path
+            client_ctx.interface = iface.name
             client_ctx.qr = true
-            ClientCommand.run(client_ctx, [name])
+            ClientCommand.run(client_ctx, [name, iface.name])
           end
         rescue ex
           puts "\nErro ao adicionar peer: #{ex.message}"
@@ -233,6 +235,7 @@ module Wgctl
 
         ctx = @context.dup
         ctx.config_file = iface.config_path
+        ctx.interface = iface.name
         ctx.name = new_name unless new_name.empty?
         ctx.description = new_desc unless new_desc.empty?
         ctx.device = new_device unless new_device.empty?
@@ -240,7 +243,7 @@ module Wgctl
 
         begin
           # Use public key as identifier to be robust even if peer lacked a name
-          PeerEditCommand.run(ctx, [target_peer.public_key])
+          PeerEditCommand.run(ctx, [target_peer.public_key, iface.name])
         rescue ex
           puts "\nErro ao editar peer: #{ex.message}"
         end
@@ -282,12 +285,14 @@ module Wgctl
         when "1"
           client_ctx = @context.dup
           client_ctx.config_file = iface.config_path
+          client_ctx.interface = iface.name
           client_ctx.qr = true
-          ClientCommand.run(client_ctx, [peer_id])
+          ClientCommand.run(client_ctx, [peer_id, iface.name])
         when "2"
           client_ctx = @context.dup
           client_ctx.config_file = iface.config_path
-          ClientCommand.run(client_ctx, [peer_id])
+          client_ctx.interface = iface.name
+          ClientCommand.run(client_ctx, [peer_id, iface.name])
         when "3"
           default_filename = "#{target_peer.name}.conf"
           print "Nome do arquivo de saída [#{default_filename}]: "
@@ -296,8 +301,9 @@ module Wgctl
 
           client_ctx = @context.dup
           client_ctx.config_file = iface.config_path
+          client_ctx.interface = iface.name
           client_ctx.output_file = outfile
-          ClientCommand.run(client_ctx, [peer_id])
+          ClientCommand.run(client_ctx, [peer_id, iface.name])
         end
 
         wait_enter
@@ -329,7 +335,8 @@ module Wgctl
           begin
             ctx = @context.dup
             ctx.config_file = iface.config_path
-            PeerRemoveCommand.run(ctx, [target_peer.public_key])
+            ctx.interface = iface.name
+            PeerRemoveCommand.run(ctx, [target_peer.public_key, iface.name])
           rescue ex
             puts "Erro ao remover peer: #{ex.message}"
           end

@@ -6,8 +6,8 @@ module Wgctl
   module Commands
     class PeersCommand
       def self.run(context : CLI::Context, args : Array(String))
-        target_name = args.first?
-        iface = context.load_interface(target_name)
+        target_name = context.interface || args.first?
+        iface = context.load_interface(target_name, hint_command: "peers")
 
         if context.json_output
           puts Output::JsonFormatter.format_peers(iface)

@@ -110,8 +110,9 @@ module Wgctl
           iface_name = configs.keys.first
           return {iface_name, configs[iface_name]}
         elsif configs.size > 1
-          names = configs.keys.sort.join(", ")
-          example = hint_command ? "wgctl #{hint_command} -i #{configs.keys.first}" : "wgctl -i #{configs.keys.first} <command>"
+          sorted_names = configs.keys.sort
+          names = sorted_names.join(", ")
+          example = hint_command ? "wgctl #{hint_command} -i #{sorted_names.first}" : "wgctl -i #{sorted_names.first} <command>"
           raise "Multiple WireGuard configurations found (#{names}). Please specify an interface with -i or --interface (e.g. #{example})"
         end
 
@@ -121,8 +122,9 @@ module Wgctl
           target = active_ifaces.first
           return {target, "/etc/wireguard/#{target}.conf"}
         elsif active_ifaces.size > 1
-          names = active_ifaces.join(", ")
-          example = hint_command ? "wgctl #{hint_command} -i #{active_ifaces.first}" : "wgctl -i #{active_ifaces.first} <command>"
+          sorted_names = active_ifaces.sort
+          names = sorted_names.join(", ")
+          example = hint_command ? "wgctl #{hint_command} -i #{sorted_names.first}" : "wgctl -i #{sorted_names.first} <command>"
           raise "Multiple active interfaces found (#{names}). Please specify an interface with -i or --interface (e.g. #{example})"
         end
 

@@ -15,7 +15,7 @@ module Wgctl
   module Commands
     class InitCommand
       def self.run(context : CLI::Context, args : Array(String))
-        interface_name = args.first? || "wg0"
+        interface_name = context.interface || args.first? || "wg0"
         config_path = context.config_file || "/etc/wireguard/#{interface_name}.conf"
 
         if File.exists?(config_path) && !context.dry_run
