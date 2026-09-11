@@ -14,6 +14,7 @@ require "../commands/version_command"
 require "../commands/init_command"
 require "../commands/migrate_command"
 require "../commands/menu_command"
+require "../commands/daemon_command"
 
 module Wgctl
   module CLI
@@ -32,6 +33,7 @@ module Wgctl
           Commands:
             status [interface]             Show friendly status and active peers
             menu [interface]               Launch interactive prompt assistant
+            daemon <start|token>           Run headless REST API or manage API tokens
             init [interface]               Initialize a new WireGuard server interface
             migrate [interface]            Migrate legacy comments (# BEGIN_PEER) to # wgctl:*
             interfaces                     List all discovered WireGuard interfaces
@@ -138,6 +140,27 @@ module Wgctl
             context.no_start = true
           end
 
+          # Daemon and token options
+          opts.on("-H HOST", "--host HOST", "Host IP to bind daemon (default: 0.0.0.0)") do |h|
+            context.host = h
+          end
+
+          opts.on("--cert CERT", "Path to SSL/TLS certificate chain") do |cert|
+            context.cert = cert
+          end
+
+          opts.on("--key KEY", "Path to SSL/TLS private key") do |key|
+            context.key = key
+          end
+
+          opts.on("--cors ORIGIN", "Allowed CORS origin for daemon (default: *)") do |cors|
+            context.cors = cors
+          end
+
+          opts.on("-e DURATION", "--expires DURATION", "Token expiration duration (e.g. 7d, 30d, 90d, 1y, never)") do |exp|
+            context.expires = exp
+          end
+
           opts.on("-v", "--version", "Show version") do
             Commands::VersionCommand.run
             exit(0)
@@ -171,6 +194,8 @@ module Wgctl
           Commands::StatusCommand.run(context, positional)
         when "menu", "tui"
           Commands::MenuCommand.run(context, positional)
+        when "daemon"
+          Commands::DaemonCommand.run(context, positional)
         when "init"
           Commands::InitCommand.run(context, positional)
         when "migrate"
