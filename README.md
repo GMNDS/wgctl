@@ -117,7 +117,52 @@ Opções disponíveis no menu:
 8. **Aplicar alterações ao vivo**: Sincroniza regras com o kernel via `wg syncconf`.
 9. **Inicializar novo servidor**: Assistente completo para criar uma nova interface de servidor do zero.
 
-### 3. Migrar Comentários Legados (Nyr wireguard-install)
+### 3. Modo Daemon e API REST Headless
+O `wgctl` pode rodar como um serviço em segundo plano expondo uma API RESTful em JSON e WebSockets para métricas em tempo real (porta padrão `7443`), permitindo controle seguro por TUIs (ex: Go/Bubbletea), frontends Web ou apps Mobile:
+
+```bash
+# Iniciar a API REST na porta 7443
+wgctl daemon start --port 7443
+
+# Para produção com HTTPS (TLS):
+wgctl daemon start --port 7443 --cert /caminho/cert.pem --key /caminho/key.pem
+
+# Com suporte a CORS configurável:
+wgctl daemon start --cors "http://localhost:3000"
+```
+
+#### Gerenciamento de Tokens de Acesso
+A API utiliza autenticação por Bearer Token com hashes SHA-256 em repouso e suporte a expiração e revogação:
+
+```bash
+# Criar novo token com validade de 30 dias
+wgctl daemon token create --name "tui-go" --expires 30d
+
+# Criar token sem expiração
+wgctl daemon token create --name "painel-web" --expires never
+
+# Listar tokens cadastrados e status
+wgctl daemon token list
+
+# Revogar um token imediatamente
+wgctl daemon token revoke tok_a87edc2a
+```
+
+#### Endpoints da API REST (`/api/v1`)
+Todas as chamadas autenticadas exigem o cabeçalho `Authorization: Bearer <token>`:
+
+* `GET /api/v1/health` - Status da API e versão (público)
+* `GET /api/v1/interfaces` - Lista de interfaces disponíveis
+* `GET /api/v1/interfaces/:name` - Resumo e contagem de peers da interface
+* `GET /api/v1/interfaces/:name/peers` - Lista de peers com tráfego e status online/offline
+* `POST /api/v1/interfaces/:name/peers` - Adiciona peer (suporta envio de `public_key` ou geração automática de chaves)
+* `PATCH /api/v1/interfaces/:name/peers/:key` - Altera metadados (nome, descrição, IP)
+* `DELETE /api/v1/interfaces/:name/peers/:key` - Remove peer e sincroniza ao vivo
+* `GET /api/v1/interfaces/:name/peers/:key/config` - Obtém configuração `.conf` do cliente
+* `GET /api/v1/interfaces/:name/peers/:key/qr` - Obtém dados e texto de QR Code
+* `GET /api/v1/interfaces/:name/live?token=<token>` - Conexão WebSocket para métricas de tráfego ao vivo
+
+### 4. Migrar Comentários Legados (Nyr wireguard-install)
 Se você já possui um servidor configurado pelo script legado do Nyr (`# BEGIN_PEER`), o `wgctl` reconhece os nomes automaticamente. Para convertê-los em metadados oficiais `# wgctl:*`:
 
 ```bash
@@ -126,7 +171,7 @@ wgctl migrate
 wgctl migrate wg0
 ```
 
-### 4. Status Geral da Interface e Peers
+### 5. Status Geral da Interface e Peers
 ```bash
 wgctl status
 # ou especificando a interface:
@@ -147,12 +192,12 @@ pc          10.13.14.2    177.x.x.x:51820        1m ago       2 GB     800 MB
 mobile      10.13.14.3    200.x.x.x:51123        offline      0 B      0 B
 ```
 
-### 5. Listar Interfaces
+### 6. Listar Interfaces
 ```bash
 wgctl interfaces
 ```
 
-### 6. Listar Peers
+### 7. Listar Peers
 ```bash
 wgctl peers
 wgctl peers wg0
@@ -164,7 +209,7 @@ pc          10.13.14.2     PcPu...12=
 mobile      10.13.14.3     Mobi...78=
 ```
 
-### 7. Detalhes de um Peer
+### 8. Detalhes de um Peer
 Pode ser consultado por nome ou por chave pública:
 ```bash
 wgctl peer asteri-c
@@ -185,7 +230,7 @@ Received:     82 MB
 Sent:         31 MB
 ```
 
-### 8. Adicionar Peer
+### 9. Adicionar Peer
 Com IP específico:
 ```bash
 wgctl peer add asteri-c --ip 10.13.14.9
@@ -202,12 +247,12 @@ Suporta simulação com `--dry-run`:
 wgctl peer add mobile --ip auto --dry-run
 ```
 
-### 9. Editar Peer
+### 10. Editar Peer
 ```bash
 wgctl peer edit mobile --description "Novo Smartphone" --device android
 ```
 
-### 10. Remover Peer
+### 11. Remover Peer
 ```bash
 # Simulação
 wgctl peer remove mobile --dry-run
@@ -216,7 +261,7 @@ wgctl peer remove mobile --dry-run
 wgctl peer remove mobile
 ```
 
-### 11. Gerar Configuração de Cliente e QR Code
+### 12. Gerar Configuração de Cliente e QR Code
 Exibir configuração no terminal:
 ```bash
 wgctl client mobile
@@ -232,7 +277,7 @@ Exibir QR Code diretamente no terminal para escanear no celular (iOS/Android):
 wgctl client mobile --qr
 ```
 
-### 12. Validação e Diagnóstico de Configuração
+### 13. Validação e Diagnóstico de Configuração
 Detecta chaves públicas duplicadas, IPs em conflito, nomes duplicados e peers sem metadados:
 ```bash
 wgctl check
@@ -244,13 +289,13 @@ wgctl check wg0
 ✓ no duplicate addresses
 ```
 
-### 13. Aplicar Alterações ao Vivo (Sem Downtime)
+### 14. Aplicar Alterações ao Vivo (Sem Downtime)
 ```bash
 wgctl apply wg0
 ```
 Utiliza `wg syncconf` para sincronizar os peers com o kernel Linux sem reiniciar a interface ou interromper o tráfego dos demais peers.
 
-### 14. Saída em JSON
+### 15. Saída em JSON
 Disponível em todos os comandos de consulta:
 ```bash
 wgctl status --json
@@ -301,6 +346,15 @@ src/
 │   ├── writer.cr          # Gravador atômico com backup e permissões 0600
 │   ├── ip_allocator.cr    # Alocador automático de IPs livres /32
 │   └── validator.cr       # Validador de consistência e integridade
+├── server/
+│   ├── daemon.cr          # Servidor HTTP/HTTPS e runner assíncrono
+│   ├── api_router.cr      # Roteador RESTful (/api/v1)
+│   ├── cors_handler.cr    # Middleware CORS para frontends Web
+│   ├── auth_handler.cr    # Middleware de validação Bearer Token
+│   ├── ws_handler.cr      # WebSocket para streaming de métricas ao vivo
+│   └── auth/
+│       ├── token.cr       # Modelo de Token com validade e revogação
+│       └── token_store.cr # Armazenamento seguro de hashes SHA-256 (0600)
 ├── wireguard/
 │   ├── runner.cr          # Integração com wg, wg-quick, qrencode
 │   ├── dump_parser.cr     # Parser de saída tabular wg show dump
@@ -309,7 +363,7 @@ src/
 │   ├── firewall_manager.cr# Geração de regras PostUp/PostDown de NAT (iptables)
 │   ├── sysctl_manager.cr  # Habilitação de net.ipv4.ip_forward=1
 │   └── service_manager.cr # Gerenciamento de serviço systemd wg-quick@
-├── commands/              # Implementação de cada comando CLI (status, menu, init, migrate, etc.)
+├── commands/              # Comandos CLI (status, menu, daemon, init, migrate, etc.)
 └── output/
     ├── table.cr           # Renderizador ASCII tabular
     ├── formatter.cr       # Formatação humana de status, peers e relatórios
