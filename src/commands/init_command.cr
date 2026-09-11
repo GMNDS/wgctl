@@ -239,7 +239,7 @@ module Wgctl
         puts "=================================================="
         puts "  WireGuard server '#{interface_name}' successfully configured!"
         puts "  Run 'wgctl status' to view live peers"
-        puts "  Run 'wgctl tui' to launch interactive management"
+        puts "  Run 'wgctl' or 'wgctl menu' to launch interactive management"
         puts "=================================================="
       end
     end

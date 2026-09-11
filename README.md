@@ -95,25 +95,27 @@ sudo wgctl init wg0 \
   --non-interactive
 ```
 
-### 2. Interface de Terminal Interativa (TUI)
-Navegue por peers com as setas, visualize transferências ao vivo e edite ou atribua nomes facilmente a peers que não possuem metadados:
+### 2. Menu Interativo via Prompts
+Execute o `wgctl` sem argumentos em um terminal interativo ou use `wgctl menu` para navegar por um assistente de linha de comando rápido, estável e intuitivo:
 
 ```bash
-wgctl tui
+wgctl
+# ou explicitando o comando:
+wgctl menu
 # ou para uma interface específica:
-wgctl tui wg0
+wgctl menu wg0
 ```
 
-* `[↑/↓]`: Navegar pela lista de peers
-* `[Enter]`: Ver detalhes completos do peer selecionado
-* `[e]`: Editar metadados (nome, descrição, dispositivo, IP)
-* `[a]`: Adicionar novo peer com IP automático
-* `[q]`: Exibir QR Code no terminal
-* `[c]`: Visualizar configuração `.conf` do cliente
-* `[d]`: Remover peer com confirmação
-* `[m]`: Migrar comentários legados do script do Nyr
-* `[r]`: Atualizar status e dados em tempo real
-* `[Esc]`: Sair da TUI
+Opções disponíveis no menu:
+1. **Status detalhado**: Exibe status amigável e peers ativos.
+2. **Adicionar novo peer**: Solicita nome, dispositivo e aloca IP automaticamente (`--ip auto`), com opção de exibir o QR Code em seguida.
+3. **Nomear / Editar peer**: Permite associar nomes e descrições a peers antigos que não possuem metadados.
+4. **Gerar configuração de cliente / QR Code**: Exibe QR Code no terminal para escanear com smartphone, exibe o `.conf` ou salva em arquivo.
+5. **Remover peer**: Remove com confirmação e recarregamento sem downtime.
+6. **Diagnóstico e validação**: Executa checagem de integridade e conflitos.
+7. **Migrar comentários legados**: Converte comentários do script do Nyr (`# BEGIN_PEER`) para `# wgctl:*`.
+8. **Aplicar alterações ao vivo**: Sincroniza regras com o kernel via `wg syncconf`.
+9. **Inicializar novo servidor**: Assistente completo para criar uma nova interface de servidor do zero.
 
 ### 3. Migrar Comentários Legados (Nyr wireguard-install)
 Se você já possui um servidor configurado pelo script legado do Nyr (`# BEGIN_PEER`), o `wgctl` reconhece os nomes automaticamente. Para convertê-los em metadados oficiais `# wgctl:*`:
@@ -299,9 +301,6 @@ src/
 │   ├── writer.cr          # Gravador atômico com backup e permissões 0600
 │   ├── ip_allocator.cr    # Alocador automático de IPs livres /32
 │   └── validator.cr       # Validador de consistência e integridade
-├── tui/
-│   ├── terminal.cr        # Modo raw, cursor ANSI e captura de teclas sem dependências
-│   └── app.cr             # Dashboard interativo com modais de adição, edição e QR Code
 ├── wireguard/
 │   ├── runner.cr          # Integração com wg, wg-quick, qrencode
 │   ├── dump_parser.cr     # Parser de saída tabular wg show dump
@@ -310,7 +309,7 @@ src/
 │   ├── firewall_manager.cr# Geração de regras PostUp/PostDown de NAT (iptables)
 │   ├── sysctl_manager.cr  # Habilitação de net.ipv4.ip_forward=1
 │   └── service_manager.cr # Gerenciamento de serviço systemd wg-quick@
-├── commands/              # Implementação de cada comando CLI (init, tui, migrate, etc.)
+├── commands/              # Implementação de cada comando CLI (status, menu, init, migrate, etc.)
 └── output/
     ├── table.cr           # Renderizador ASCII tabular
     ├── formatter.cr       # Formatação humana de status, peers e relatórios

@@ -10,6 +10,8 @@ module Wgctl
       property json_output : Bool = false
       property dry_run : Bool = false
       property qr_code : Bool = false
+      def qr=(v : Bool); @qr_code = v; end
+      def qr : Bool; @qr_code; end
       property output_file : String?
       property ip : String?
       property description : String?
@@ -51,6 +53,13 @@ module Wgctl
         end
 
         configs
+      end
+
+      # Returns sorted list of all unique interface names available (configured or active)
+      def discover_interfaces : Array(String)
+        configs = available_configs
+        active_ifaces = WireGuard::Runner.list_active_interfaces rescue [] of String
+        (configs.keys + active_ifaces).uniq.sort
       end
 
       # Discovers or resolves the target interface configuration

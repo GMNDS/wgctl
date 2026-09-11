@@ -13,7 +13,7 @@ require "../commands/apply_command"
 require "../commands/version_command"
 require "../commands/init_command"
 require "../commands/migrate_command"
-require "../commands/tui_command"
+require "../commands/menu_command"
 
 module Wgctl
   module CLI
@@ -31,7 +31,7 @@ module Wgctl
 
           Commands:
             status [interface]             Show friendly status and active peers
-            tui [interface]                Launch interactive Terminal UI dashboard
+            menu [interface]               Launch interactive prompt assistant
             init [interface]               Initialize a new WireGuard server interface
             migrate [interface]            Migrate legacy comments (# BEGIN_PEER) to # wgctl:*
             interfaces                     List all discovered WireGuard interfaces
@@ -156,8 +156,11 @@ module Wgctl
         parser.parse(argv)
 
         if positional.empty?
-          # Default to status if no command given
-          Commands::StatusCommand.run(context, [] of String)
+          if STDIN.tty?
+            Commands::MenuCommand.run(context, [] of String)
+          else
+            Commands::StatusCommand.run(context, [] of String)
+          end
           return
         end
 
@@ -166,8 +169,8 @@ module Wgctl
         case command
         when "status"
           Commands::StatusCommand.run(context, positional)
-        when "tui"
-          Commands::TUICommand.run(context, positional)
+        when "menu", "tui"
+          Commands::MenuCommand.run(context, positional)
         when "init"
           Commands::InitCommand.run(context, positional)
         when "migrate"
