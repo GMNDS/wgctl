@@ -75,7 +75,56 @@ sudo make install
 
 ## Uso e Exemplos
 
-### 1. Status Geral da Interface e Peers
+### 1. Inicializar Novo Servidor (Substituto de wireguard-install)
+Configura a interface do zero, detecta o IP público, configura sysctl `ip_forward`, regras de firewall NAT e ativa o serviço systemd:
+
+```bash
+# Modo assistido interativo
+sudo wgctl init
+
+# Ou para uma interface específica:
+sudo wgctl init wg0
+
+# Modo automatizado com flags:
+sudo wgctl init wg0 \
+  --port 51820 \
+  --subnet 10.13.14.1/24 \
+  --public-ip 203.0.113.1 \
+  --dns 1.1.1.1 \
+  --first-client cel \
+  --non-interactive
+```
+
+### 2. Interface de Terminal Interativa (TUI)
+Navegue por peers com as setas, visualize transferências ao vivo e edite ou atribua nomes facilmente a peers que não possuem metadados:
+
+```bash
+wgctl tui
+# ou para uma interface específica:
+wgctl tui wg0
+```
+
+* `[↑/↓]`: Navegar pela lista de peers
+* `[Enter]`: Ver detalhes completos do peer selecionado
+* `[e]`: Editar metadados (nome, descrição, dispositivo, IP)
+* `[a]`: Adicionar novo peer com IP automático
+* `[q]`: Exibir QR Code no terminal
+* `[c]`: Visualizar configuração `.conf` do cliente
+* `[d]`: Remover peer com confirmação
+* `[m]`: Migrar comentários legados do script do Nyr
+* `[r]`: Atualizar status e dados em tempo real
+* `[Esc]`: Sair da TUI
+
+### 3. Migrar Comentários Legados (Nyr wireguard-install)
+Se você já possui um servidor configurado pelo script legado do Nyr (`# BEGIN_PEER`), o `wgctl` reconhece os nomes automaticamente. Para convertê-los em metadados oficiais `# wgctl:*`:
+
+```bash
+wgctl migrate
+# ou
+wgctl migrate wg0
+```
+
+### 4. Status Geral da Interface e Peers
 ```bash
 wgctl status
 # ou especificando a interface:
@@ -96,12 +145,12 @@ pc          10.13.14.2    177.x.x.x:51820        1m ago       2 GB     800 MB
 mobile      10.13.14.3    200.x.x.x:51123        offline      0 B      0 B
 ```
 
-### 2. Listar Interfaces
+### 5. Listar Interfaces
 ```bash
 wgctl interfaces
 ```
 
-### 3. Listar Peers
+### 6. Listar Peers
 ```bash
 wgctl peers
 wgctl peers wg0
@@ -113,7 +162,7 @@ pc          10.13.14.2     PcPu...12=
 mobile      10.13.14.3     Mobi...78=
 ```
 
-### 4. Detalhes de um Peer
+### 7. Detalhes de um Peer
 Pode ser consultado por nome ou por chave pública:
 ```bash
 wgctl peer asteri-c
@@ -134,7 +183,7 @@ Received:     82 MB
 Sent:         31 MB
 ```
 
-### 5. Adicionar Peer
+### 8. Adicionar Peer
 Com IP específico:
 ```bash
 wgctl peer add asteri-c --ip 10.13.14.9
@@ -151,12 +200,12 @@ Suporta simulação com `--dry-run`:
 wgctl peer add mobile --ip auto --dry-run
 ```
 
-### 6. Editar Peer
+### 9. Editar Peer
 ```bash
 wgctl peer edit mobile --description "Novo Smartphone" --device android
 ```
 
-### 7. Remover Peer
+### 10. Remover Peer
 ```bash
 # Simulação
 wgctl peer remove mobile --dry-run
@@ -165,7 +214,7 @@ wgctl peer remove mobile --dry-run
 wgctl peer remove mobile
 ```
 
-### 8. Gerar Configuração de Cliente e QR Code
+### 11. Gerar Configuração de Cliente e QR Code
 Exibir configuração no terminal:
 ```bash
 wgctl client mobile
@@ -181,7 +230,7 @@ Exibir QR Code diretamente no terminal para escanear no celular (iOS/Android):
 wgctl client mobile --qr
 ```
 
-### 9. Validação e Diagnóstico de Configuração
+### 12. Validação e Diagnóstico de Configuração
 Detecta chaves públicas duplicadas, IPs em conflito, nomes duplicados e peers sem metadados:
 ```bash
 wgctl check
@@ -193,13 +242,13 @@ wgctl check wg0
 ✓ no duplicate addresses
 ```
 
-### 10. Aplicar Alterações ao Vivo (Sem Downtime)
+### 13. Aplicar Alterações ao Vivo (Sem Downtime)
 ```bash
 wgctl apply wg0
 ```
 Utiliza `wg syncconf` para sincronizar os peers com o kernel Linux sem reiniciar a interface ou interromper o tráfego dos demais peers.
 
-### 11. Saída em JSON
+### 14. Saída em JSON
 Disponível em todos os comandos de consulta:
 ```bash
 wgctl status --json
@@ -246,15 +295,22 @@ src/
 │   ├── parser.cr          # Leitor de comentários # wgctl:*
 │   └── formatter.cr       # Formatador de comentários
 ├── config/
-│   ├── parser.cr          # Parser não destrutivo de .conf
+│   ├── parser.cr          # Parser não destrutivo de .conf (suporta Nyr e wgctl)
 │   ├── writer.cr          # Gravador atômico com backup e permissões 0600
 │   ├── ip_allocator.cr    # Alocador automático de IPs livres /32
 │   └── validator.cr       # Validador de consistência e integridade
+├── tui/
+│   ├── terminal.cr        # Modo raw, cursor ANSI e captura de teclas sem dependências
+│   └── app.cr             # Dashboard interativo com modais de adição, edição e QR Code
 ├── wireguard/
 │   ├── runner.cr          # Integração com wg, wg-quick, qrencode
 │   ├── dump_parser.cr     # Parser de saída tabular wg show dump
-│   └── keys.cr            # Geração de chaves WireGuard Curve25519
-├── commands/              # Implementação de cada comando CLI
+│   ├── keys.cr            # Geração de chaves WireGuard Curve25519
+│   ├── system_detector.cr # Detecção de interface WAN e IP público
+│   ├── firewall_manager.cr# Geração de regras PostUp/PostDown de NAT (iptables)
+│   ├── sysctl_manager.cr  # Habilitação de net.ipv4.ip_forward=1
+│   └── service_manager.cr # Gerenciamento de serviço systemd wg-quick@
+├── commands/              # Implementação de cada comando CLI (init, tui, migrate, etc.)
 └── output/
     ├── table.cr           # Renderizador ASCII tabular
     ├── formatter.cr       # Formatação humana de status, peers e relatórios
