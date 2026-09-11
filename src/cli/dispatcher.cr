@@ -11,6 +11,9 @@ require "../commands/client_command"
 require "../commands/check_command"
 require "../commands/apply_command"
 require "../commands/version_command"
+require "../commands/init_command"
+require "../commands/migrate_command"
+require "../commands/tui_command"
 
 module Wgctl
   module CLI
@@ -28,6 +31,9 @@ module Wgctl
 
           Commands:
             status [interface]             Show friendly status and active peers
+            tui [interface]                Launch interactive Terminal UI dashboard
+            init [interface]               Initialize a new WireGuard server interface
+            migrate [interface]            Migrate legacy comments (# BEGIN_PEER) to # wgctl:*
             interfaces                     List all discovered WireGuard interfaces
             peers [interface]              List all peers in an interface
             peer show <name|key>           Show details for a single peer
@@ -95,6 +101,43 @@ module Wgctl
             context.no_apply = true
           end
 
+          # Server init options
+          opts.on("--wan IFACE", "Default external WAN interface for NAT rules (e.g. eth0)") do |wan|
+            context.wan_interface = wan
+          end
+
+          opts.on("--public-ip IP", "Public IP or hostname of the server") do |pub|
+            context.public_ip = pub
+          end
+
+          opts.on("--port PORT", "Listen port for WireGuard server") do |p|
+            context.port = p.to_i?
+          end
+
+          opts.on("--subnet CIDR", "Internal VPN subnet (e.g. 10.13.14.1/24)") do |sub|
+            context.subnet = sub
+          end
+
+          opts.on("--dns DNS", "DNS resolvers for VPN clients (e.g. 1.1.1.1, 1.0.0.1)") do |d|
+            context.dns = d
+          end
+
+          opts.on("--first-client NAME", "Name of initial client to generate on init") do |fc|
+            context.first_client = fc
+          end
+
+          opts.on("-y", "--non-interactive", "Run without interactive wizard prompts") do
+            context.non_interactive = true
+          end
+
+          opts.on("--no-firewall", "Do not add PostUp/PostDown NAT firewall rules") do
+            context.no_firewall = true
+          end
+
+          opts.on("--no-start", "Do not start/enable systemd service automatically") do
+            context.no_start = true
+          end
+
           opts.on("-v", "--version", "Show version") do
             Commands::VersionCommand.run
             exit(0)
@@ -123,6 +166,12 @@ module Wgctl
         case command
         when "status"
           Commands::StatusCommand.run(context, positional)
+        when "tui"
+          Commands::TUICommand.run(context, positional)
+        when "init"
+          Commands::InitCommand.run(context, positional)
+        when "migrate"
+          Commands::MigrateCommand.run(context, positional)
         when "interfaces"
           Commands::InterfacesCommand.run(context, positional)
         when "peers"

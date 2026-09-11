@@ -19,6 +19,15 @@ module Wgctl
       property preshared_key : String?
       property endpoint : String?
       property no_apply : Bool = false
+      property wan_interface : String?
+      property public_ip : String?
+      property port : Int32?
+      property subnet : String?
+      property dns : String?
+      property first_client : String?
+      property non_interactive : Bool = false
+      property no_firewall : Bool = false
+      property no_start : Bool = false
 
       def initialize
       end

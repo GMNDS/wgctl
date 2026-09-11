@@ -32,6 +32,18 @@ module Wgctl
             if MetadataHandler::Parser.metadata_line?(line)
               Models::Metadata.parse_line(line, pending_metadata)
             else
+              # Check for Nyr legacy peer format: # BEGIN_PEER <client>
+              if stripped =~ /^#\s*BEGIN_PEER\s+(.+)$/
+                legacy_client = $1.strip
+                if pending_metadata.name.nil? || pending_metadata.name.to_s.empty?
+                  pending_metadata.name = legacy_client
+                end
+              elsif stripped =~ /^#\s*ENDPOINT\s+(.+)$/
+                # Nyr legacy server endpoint comment
+                ep = $1.strip
+                iface.raw_properties["Endpoint"] ||= [] of String
+                iface.raw_properties["Endpoint"] << ep
+              end
               pending_comments << line
             end
             next
