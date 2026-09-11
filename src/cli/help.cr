@@ -265,16 +265,18 @@ OPTIONS:
   --dns <servers>                 DNS resolvers for VPN clients (default: 1.1.1.1, 1.0.0.1)
   --first-client <name>           Generate initial client configuration (default: client1)
   -y, --non-interactive           Run unattended using flags or sensible defaults without prompting
+  --skip-packages                 Skip automatic detection and installation of OS packages
   --no-firewall                   Skip adding PostUp/PostDown iptables NAT firewall rules
   --no-start                      Do not enable or start systemd service automatically
 
 AUTOMATED ACTIONS PERFORMED BY INIT:
-  1. Detects external WAN interface and public IP automatically.
-  2. Enables IPv4 sysctl packet forwarding (/etc/sysctl.d/99-wireguard-forward.conf).
-  3. Generates cryptographic WireGuard server keypair (Curve25519).
-  4. Configures iptables NAT masquerade forwarding rules for internet access.
-  5. Creates an initial client configuration and displays its mobile QR code.
-  6. Enables and starts systemd service (wg-quick@<interface>).
+  1. Detects OS distro and installs wireguard, iptables, and qrencode if missing.
+  2. Detects external WAN interface and public IP automatically.
+  3. Enables IPv4 sysctl packet forwarding (/etc/sysctl.d/99-wireguard-forward.conf).
+  4. Generates cryptographic WireGuard server keypair (Curve25519).
+  5. Configures iptables NAT masquerade forwarding rules for internet access.
+  6. Creates an initial client configuration and displays its mobile QR code.
+  7. Enables and starts systemd service (wg-quick@<interface>).
 
 EXAMPLES:
   # Guided interactive wizard (recommended)

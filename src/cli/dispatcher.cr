@@ -141,6 +141,10 @@ module Wgctl
             context.no_start = true
           end
 
+          opts.on("--skip-packages", "Skip automatic installation of system packages") do
+            context.skip_pkg_install = true
+          end
+
           # Daemon and token options
           opts.on("-H HOST", "--host HOST", "Host IP to bind daemon (default: 0.0.0.0)") do |h|
             context.host = h

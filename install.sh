@@ -124,12 +124,7 @@ fi
 # 6. Check WireGuard tools
 if ! command -v wg >/dev/null 2>&1; then
   echo -e "\n${YELLOW}${BOLD}Note:${NC} wireguard-tools ('wg') was not detected in PATH."
-  echo "To use live runtime and apply features, install it via your package manager:"
-  echo "  - Debian/Ubuntu:  sudo apt install wireguard-tools"
-  echo "  - CentOS/RHEL:    sudo dnf install wireguard-tools"
-  echo "  - Arch Linux:     sudo pacman -S wireguard-tools"
-  echo "  - Alpine Linux:   sudo apk add wireguard-tools"
-  echo "  - macOS:          brew install wireguard-tools"
+  echo "You can install it manually or simply run '${BOLD}wgctl init${NC}' which will detect your OS and install it automatically!"
 fi
 
 echo -e "\nRun ${BOLD}wgctl --help${NC} or ${BOLD}wgctl status${NC} to get started!"

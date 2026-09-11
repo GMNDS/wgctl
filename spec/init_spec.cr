@@ -19,6 +19,7 @@ describe "wgctl init" do
     ctx.first_client = "myphone"
     ctx.non_interactive = true
     ctx.no_start = true
+    ctx.skip_pkg_install = true
 
     # Run init
     Wgctl::Commands::InitCommand.run(ctx, ["wg0"])

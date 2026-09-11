@@ -30,6 +30,7 @@ module Wgctl
       property non_interactive : Bool = false
       property no_firewall : Bool = false
       property no_start : Bool = false
+      property skip_pkg_install : Bool = false
       property host : String = "0.0.0.0"
       property cert : String?
       property key : String?

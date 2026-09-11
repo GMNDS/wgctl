@@ -9,6 +9,7 @@ require "../wireguard/firewall_manager"
 require "../wireguard/sysctl_manager"
 require "../wireguard/service_manager"
 require "../wireguard/runner"
+require "../wireguard/package_manager"
 
 module Wgctl
   module Commands
@@ -34,6 +35,39 @@ module Wgctl
         puts "  wgctl Server Initialization (#{interface_name})"
         puts "=================================================="
         puts ""
+
+        # 0. Check and install system packages if missing
+        unless context.skip_pkg_install || context.dry_run
+          missing = WireGuard::PackageManager.missing_tools
+          if missing.empty?
+            puts "✓ System dependencies already installed (wireguard-tools, iptables, qrencode)"
+          else
+            puts "Missing required system packages: #{missing.join(", ")}"
+            distro = WireGuard::PackageManager.detect_distro
+            if distro == :unknown
+              puts "Note: Could not automatically detect Linux distribution. Please install #{missing.join(", ")} manually."
+            else
+              should_install = true
+              if interactive
+                print "Install missing system packages automatically using your package manager? [Y/n]: "
+                STDOUT.flush
+                input = gets.to_s.strip.downcase
+                should_install = (input.empty? || input == "y" || input == "yes")
+              end
+
+              if should_install
+                puts "Installing system dependencies..."
+                success, msg = WireGuard::PackageManager.install_dependencies(inherit_output: true)
+                if success
+                  puts "✓ #{msg}"
+                else
+                  puts "Warning: #{msg}"
+                end
+              end
+            end
+          end
+          puts ""
+        end
 
         # 1. Detect and resolve WAN Interface
         detected_wan = WireGuard::SystemDetector.detect_default_wan_interface
