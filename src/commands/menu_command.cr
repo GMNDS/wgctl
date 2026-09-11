@@ -168,6 +168,7 @@ module Wgctl
         description = (gets || "").strip
 
         ctx = @context.dup
+        ctx.config_file = iface.config_path
         ctx.ip = ip
         ctx.device = device
         ctx.description = description unless description.empty?
@@ -178,6 +179,7 @@ module Wgctl
           resp = (gets || "").strip.downcase
           if resp.empty? || resp == "s" || resp == "y" || resp == "sim"
             client_ctx = @context.dup
+            client_ctx.config_file = iface.config_path
             client_ctx.qr = true
             ClientCommand.run(client_ctx, [name])
           end
@@ -230,6 +232,7 @@ module Wgctl
         new_ip = (gets || "").strip
 
         ctx = @context.dup
+        ctx.config_file = iface.config_path
         ctx.name = new_name unless new_name.empty?
         ctx.description = new_desc unless new_desc.empty?
         ctx.device = new_device unless new_device.empty?
@@ -278,10 +281,12 @@ module Wgctl
         case action
         when "1"
           client_ctx = @context.dup
+          client_ctx.config_file = iface.config_path
           client_ctx.qr = true
           ClientCommand.run(client_ctx, [peer_id])
         when "2"
           client_ctx = @context.dup
+          client_ctx.config_file = iface.config_path
           ClientCommand.run(client_ctx, [peer_id])
         when "3"
           default_filename = "#{target_peer.name}.conf"
@@ -290,6 +295,7 @@ module Wgctl
           outfile = default_filename if outfile.empty?
 
           client_ctx = @context.dup
+          client_ctx.config_file = iface.config_path
           client_ctx.output_file = outfile
           ClientCommand.run(client_ctx, [peer_id])
         end
@@ -321,7 +327,9 @@ module Wgctl
         confirm = (gets || "").strip.downcase
         if confirm == "s" || confirm == "y" || confirm == "sim"
           begin
-            PeerRemoveCommand.run(@context, [target_peer.public_key])
+            ctx = @context.dup
+            ctx.config_file = iface.config_path
+            PeerRemoveCommand.run(ctx, [target_peer.public_key])
           rescue ex
             puts "Erro ao remover peer: #{ex.message}"
           end
