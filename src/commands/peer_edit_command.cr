@@ -12,8 +12,9 @@ module Wgctl
           raise "Missing peer identifier. Usage: wgctl peer edit <name|public_key> [options]"
         end
 
-        query = args.first
-        iface = context.load_interface
+        query = args[0]
+        target_iface = context.interface || args[1]?
+        iface = context.load_interface(target_iface, hint_command: "peer edit #{query}")
         config_path = iface.config_path
         unless config_path && File.exists?(config_path)
           raise "Configuration file not found for interface #{iface.name}."

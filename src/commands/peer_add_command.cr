@@ -20,7 +20,8 @@ module Wgctl
           raise "Peer name cannot be empty."
         end
 
-        iface = context.load_interface
+        target_iface = context.interface || args[1]?
+        iface = context.load_interface(target_iface, hint_command: "peer add #{peer_name} --ip auto")
         config_path = iface.config_path
         unless config_path && File.exists?(config_path)
           raise "Interface configuration file not found for #{iface.name}."

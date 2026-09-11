@@ -164,20 +164,32 @@ HELP
 wgctl peer show - Display detailed information for a single peer
 
 USAGE:
-  wgctl peer show <name|key> [options]
-  wgctl peer <name|key>           (Shortcut for peer show)
+  wgctl peer show <name|key> [interface] [options]
+  wgctl peer <name|key> [interface] [options]
 
 ARGUMENTS:
   <name|key>                      Peer name or base64 public key
+  [interface]                     WireGuard interface (optional if -i is used or only one interface exists)
 
 OPTIONS:
+  -i, --interface <name>          Specify target WireGuard interface (e.g. wg0, wg1)
   --json                          Output peer details in JSON format
   -c, --config <file>             Explicit path to WireGuard configuration file
 
 EXAMPLES:
+  # Display peer in default/single interface
   wgctl peer show phone
-  wgctl peer phone
-  wgctl peer phone --json
+
+  # Specify interface via flag
+  wgctl peer show asteri-m -i wg0
+  wgctl peer show asteri-m --interface wg1
+
+  # Specify interface as positional argument
+  wgctl peer show asteri-m wg0
+  wgctl peer asteri-m wg0
+
+  # Output in JSON format
+  wgctl peer show phone -i wg0 --json
 HELP
 
         else
@@ -196,6 +208,7 @@ COMMANDS:
   peers [interface]               List all peers in an interface
 
 PEER OPTIONS:
+  -i, --interface <name>          Target WireGuard interface (e.g. wg0, wg1)
   --ip <IP|auto>                  IP address (e.g. 10.13.14.9 or 'auto')
   --name <new-name>               New name when editing
   --description <text>            Peer description
@@ -207,9 +220,9 @@ PEER OPTIONS:
 
 EXAMPLES:
   wgctl peer add phone --ip auto --device mobile
-  wgctl peer show phone
+  wgctl peer show asteri-m -i wg0
   wgctl peer edit phone --description "Alice Phone"
-  wgctl peer remove phone
+  wgctl peer remove phone -i wg0
 
 Run 'wgctl help peer <add|edit|remove|show>' for detailed options on each subcommand.
 HELP

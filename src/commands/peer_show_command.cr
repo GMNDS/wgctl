@@ -7,11 +7,12 @@ module Wgctl
     class PeerShowCommand
       def self.run(context : CLI::Context, args : Array(String))
         if args.empty?
-          raise "Missing peer name or public key. Usage: wgctl peer show <name|public_key>"
+          raise "Missing peer name or public key. Usage: wgctl peer show <name|public_key> [-i <interface>]"
         end
 
-        query = args.first
-        iface = context.load_interface
+        query = args[0]
+        target_iface = context.interface || args[1]?
+        iface = context.load_interface(target_iface, hint_command: "peer show #{query}")
 
         peer = iface.find_peer(query)
         unless peer

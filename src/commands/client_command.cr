@@ -11,8 +11,9 @@ module Wgctl
           raise "Missing peer identifier. Usage: wgctl client <name|public_key> [options]"
         end
 
-        query = args.first
-        iface = context.load_interface
+        query = args[0]
+        target_iface = context.interface || args[1]?
+        iface = context.load_interface(target_iface, hint_command: "client #{query}")
 
         peer = iface.find_peer(query)
         unless peer

@@ -56,6 +56,10 @@ module Wgctl
             context.config_file = cfg
           end
 
+          opts.on("-i IFACE", "--interface IFACE", "Specify target WireGuard interface (e.g. wg0, wg1)") do |iface|
+            context.interface = iface
+          end
+
           opts.on("--json", "Output results in JSON format") do
             context.json_output = true
           end
