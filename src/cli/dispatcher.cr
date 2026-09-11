@@ -15,41 +15,42 @@ require "../commands/init_command"
 require "../commands/migrate_command"
 require "../commands/menu_command"
 require "../commands/daemon_command"
+require "./help"
 
 module Wgctl
   module CLI
     class Dispatcher
       def self.run(argv : Array(String) = ARGV)
+        # 1. Handle help requests before option parsing to allow rich contextual help
+        if argv.first? == "help"
+          cmd = argv[1]?
+          subcmd = argv[2]?
+          Help.print_command_help(cmd, subcmd)
+          return
+        end
+
+        if argv.includes?("--help") || argv.includes?("-h")
+          clean_args = argv.reject { |a| a == "--help" || a == "-h" }
+          if clean_args.empty?
+            Help.print_main_help
+          else
+            cmd = clean_args[0]
+            subcmd = clean_args[1]?
+            Help.print_command_help(cmd, subcmd)
+          end
+          return
+        end
+
+        if argv == ["-v"] || argv == ["--version"]
+          Commands::VersionCommand.run
+          return
+        end
+
         context = Context.new
         positional = [] of String
 
         parser = OptionParser.new do |opts|
-          opts.banner = <<-BANNER
-          wgctl - Friendly WireGuard management CLI
-
-          Usage:
-            wgctl <command> [arguments...] [options...]
-
-          Commands:
-            status [interface]             Show friendly status and active peers
-            menu [interface]               Launch interactive prompt assistant
-            daemon <start|token>           Run headless REST API or manage API tokens
-            init [interface]               Initialize a new WireGuard server interface
-            migrate [interface]            Migrate legacy comments (# BEGIN_PEER) to # wgctl:*
-            interfaces                     List all discovered WireGuard interfaces
-            peers [interface]              List all peers in an interface
-            peer show <name|key>           Show details for a single peer
-            peer <name|key>                Shortcut for 'peer show'
-            peer add <name> --ip <ip|auto> Add a new peer and generate client keys
-            peer edit <name|key>           Edit peer metadata, IP, or properties
-            peer remove <name|key>         Safely remove a peer
-            client <name|key>              Generate WireGuard client configuration
-            check [interface]              Validate configuration integrity and detect conflicts
-            apply [interface]              Sync interface configuration live without downtime
-            version                        Show version information
-
-          Global Options:
-          BANNER
+          opts.banner = Help.main_help_text
 
           opts.on("-c CONFIG", "--config CONFIG", "Path to WireGuard configuration file") do |cfg|
             context.config_file = cfg
@@ -167,7 +168,7 @@ module Wgctl
           end
 
           opts.on("-h", "--help", "Show help") do
-            puts opts
+            Help.print_main_help
             exit(0)
           end
 
@@ -232,7 +233,9 @@ module Wgctl
         when "version"
           Commands::VersionCommand.run
         when "help"
-          puts parser
+          cmd = positional.shift?
+          subcmd = positional.shift?
+          Help.print_command_help(cmd, subcmd)
         else
           raise "Unknown command: '#{command}'. Run 'wgctl --help' for usage."
         end

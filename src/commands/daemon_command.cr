@@ -183,26 +183,7 @@ module Wgctl
       end
 
       private def self.print_help
-        puts <<-HELP
-        wgctl daemon - Headless REST API and background server
-
-        Usage:
-          wgctl daemon start [options]
-          wgctl daemon token create --name <name> [--expires 30d]
-          wgctl daemon token list
-          wgctl daemon token revoke <id|name>
-
-        Start Options:
-          --port, -p PORT         Port to bind (default: 7443)
-          --host, -H HOST         Host IP to bind (default: 0.0.0.0)
-          --cert CERT_FILE        Path to SSL/TLS certificate chain (for HTTPS)
-          --key KEY_FILE          Path to SSL/TLS private key
-          --cors ORIGIN           Allowed CORS origin (default: "*")
-
-        Token Options:
-          --name, -n NAME         Descriptive name for the API token
-          --expires, -e DURATION  Expiration time (e.g. 7d, 30d, 90d, 1y, never)
-        HELP
+        CLI::Help.print_daemon_help
       end
     end
   end
