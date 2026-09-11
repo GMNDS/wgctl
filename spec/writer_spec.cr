@@ -34,4 +34,33 @@ describe Wgctl::Config::Writer do
     output.should contain("PublicKey = my_pub_key=")
     output.should contain("AllowedIPs = 10.13.14.9/32")
   end
+
+  it "never writes Endpoint under [Interface] section" do
+    raw_conf = <<-CONF
+    # ENDPOINT 204.216.154.80
+    [Interface]
+    Address = 10.13.14.1/24
+    ListenPort = 51820
+    PrivateKey = aaaaaaaa=
+    Endpoint = 204.216.154.80
+
+    [Peer]
+    PublicKey = bbbbbbbb=
+    AllowedIPs = 10.13.14.2/32
+    CONF
+
+    iface = Wgctl::Config::Parser.parse_string(raw_conf, "wg0")
+    iface.endpoint.should eq("204.216.154.80")
+
+    output = Wgctl::Config::Writer.format(iface)
+    # Must NOT have Endpoint under [Interface]
+    lines = output.lines
+    iface_idx = lines.index { |l| l.strip == "[Interface]" }
+    peer_idx = lines.index { |l| l.strip == "[Peer]" }
+    iface_section = lines[iface_idx.not_nil!..peer_idx.not_nil!]
+    iface_section.any? { |l| l.strip.starts_with?("Endpoint =") }.should be_false
+
+    # Comment should be preserved
+    output.should contain("# ENDPOINT 204.216.154.80")
+  end
 end

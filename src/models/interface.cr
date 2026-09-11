@@ -22,6 +22,9 @@ module Wgctl
       @[JSON::Field(ignore: true)]
       property raw_properties : Hash(String, Array(String)) = Hash(String, Array(String)).new
 
+      # Server public endpoint (e.g. 204.216.154.80:51820)
+      property server_endpoint : String? = nil
+
       property peers : Array(Peer) = [] of Peer
 
       # Runtime properties
@@ -37,8 +40,13 @@ module Wgctl
         @private_key : String? = nil,
         @peers : Array(Peer) = [] of Peer,
         @raw_headers : Array(String) = [] of String,
-        @raw_properties : Hash(String, Array(String)) = Hash(String, Array(String)).new
+        @raw_properties : Hash(String, Array(String)) = Hash(String, Array(String)).new,
+        @server_endpoint : String? = nil
       )
+      end
+
+      def endpoint : String?
+        @server_endpoint || @raw_properties["Endpoint"]?.try(&.first?)
       end
 
       def effective_address : String

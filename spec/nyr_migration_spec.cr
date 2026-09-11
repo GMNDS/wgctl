@@ -38,7 +38,7 @@ describe "Nyr wireguard-install compatibility & migration" do
     iface.peers[1].allowed_ips.should eq(["10.13.14.3/32"])
 
     # Server endpoint should be recognized automatically
-    iface.raw_properties["Endpoint"]?.should eq(["203.0.113.1"])
+    iface.endpoint.should eq("203.0.113.1")
   end
 
   it "migrates Nyr comments to # wgctl:* format" do

@@ -489,8 +489,8 @@ module Wgctl
       end
 
       private def detect_endpoint(iface : Models::Interface, port : Int32) : String
-        if custom_ep = iface.raw_properties["Endpoint"]?.try(&.first?)
-          return custom_ep
+        if custom_ep = iface.endpoint
+          return custom_ep.includes?(":") ? custom_ep : "#{custom_ep}:#{port}"
         end
         host = System.hostname rescue "vpn.example.com"
         "#{host}:#{port}"

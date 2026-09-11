@@ -41,8 +41,10 @@ module Wgctl
               elsif stripped =~ /^#\s*ENDPOINT\s+(.+)$/
                 # Nyr legacy server endpoint comment
                 ep = $1.strip
-                iface.raw_properties["Endpoint"] ||= [] of String
-                iface.raw_properties["Endpoint"] << ep
+                iface.server_endpoint = ep
+              elsif stripped =~ /^#\s*wgctl:endpoint=(.+)$/
+                ep = $1.strip
+                iface.server_endpoint = ep
               end
               pending_comments << line
             end
@@ -105,6 +107,10 @@ module Wgctl
                 iface.listen_port = value.to_i?
               when "privatekey"
                 iface.private_key = value
+              when "endpoint"
+                # If an invalid Endpoint= line exists in [Interface], capture it safely
+                # so it is not re-emitted as an invalid [Interface] directive
+                iface.server_endpoint ||= value
               else
                 # Other interface properties (DNS, PostUp, PostDown, SaveConfig, etc.)
                 iface.raw_properties[key] ||= [] of String

@@ -10,6 +10,12 @@ module Wgctl
       def self.format(iface : Models::Interface) : String
         io = IO::Memory.new
 
+        # Ensure server_endpoint is kept as comment
+        has_ep_comment = iface.raw_headers.any? { |h| h.strip =~ /^#\s*(ENDPOINT|wgctl:endpoint=)/i }
+        if (ep = iface.server_endpoint) && !has_ep_comment
+          io.puts "# ENDPOINT #{ep}"
+        end
+
         # Top comments / headers
         iface.raw_headers.each do |h|
           io.puts h
@@ -30,6 +36,7 @@ module Wgctl
 
         # Raw properties for Interface (DNS, PostUp, PostDown, etc.)
         iface.raw_properties.each do |key, values|
+          next if key.downcase == "endpoint" # Endpoint is not an [Interface] directive!
           values.each do |val|
             io.puts "#{key} = #{val}"
           end

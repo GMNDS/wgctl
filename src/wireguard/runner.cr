@@ -51,7 +51,30 @@ module Wgctl
           return {false, "wg-quick strip failed: #{stderr.to_s.strip}"}
         end
 
-        stripped_content = stdout.to_s
+        # Filter stripped content: wg syncconf strictly only allows ListenPort, PrivateKey, FwMark
+        # in the [Interface] section. If any unrecognized line (like Endpoint) slipped through, filter it out.
+        cleaned_lines = [] of String
+        in_interface_section = false
+
+        stdout.to_s.each_line do |line|
+          stripped = line.strip
+          if stripped =~ /^\[\s*([a-zA-Z0-9_-]+)\s*\]$/
+            in_interface_section = ($1.downcase == "interface")
+            cleaned_lines << line
+            next
+          end
+
+          if in_interface_section && stripped =~ /^([^=]+)=(.*)$/
+            key = $1.strip.downcase
+            unless ["listenport", "privatekey", "fwmark"].includes?(key)
+              next
+            end
+          end
+
+          cleaned_lines << line
+        end
+
+        stripped_content = cleaned_lines.join("\n")
 
         # 2. Write stripped configuration to a secure temporary file
         temp_file = File.tempfile("wgctl-strip-#{interface_name}", ".conf")

@@ -72,9 +72,9 @@ module Wgctl
       end
 
       private def self.detect_endpoint(iface : Models::Interface, port : Int32) : String
-        # Check if an explicit server endpoint is set in Interface raw properties
-        if custom_ep = iface.raw_properties["Endpoint"]?.try(&.first?)
-          return custom_ep
+        # Check if an explicit server endpoint is set in Interface
+        if custom_ep = iface.endpoint
+          return custom_ep.includes?(":") ? custom_ep : "#{custom_ep}:#{port}"
         end
 
         # Try to resolve hostname

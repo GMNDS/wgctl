@@ -122,11 +122,10 @@ module Wgctl
           config_path: config_path,
           address: [subnet],
           listen_port: port,
-          private_key: server_priv
+          private_key: server_priv,
+          server_endpoint: "#{public_ip}:#{port}"
         )
-
-        # Store public endpoint in properties
-        iface.raw_properties["Endpoint"] = ["#{public_ip}:#{port}"]
+        iface.raw_headers << "# ENDPOINT #{public_ip}:#{port}"
         iface.raw_properties["DNS"] = [dns]
 
         # Add NAT forwarding rules
