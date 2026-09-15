@@ -11,6 +11,7 @@ require "../config/ip_allocator"
 require "../wireguard/keys"
 require "../wireguard/runner"
 require "../commands/version_command"
+require "./openapi"
 
 module Wgctl
   module Server
@@ -114,6 +115,22 @@ module Wgctl
               end
             end
           end
+        end
+
+        # GET /docs  →  Swagger UI
+        if (path == "/docs" || path == "/docs/") && method == "GET"
+          context.response.headers["Content-Type"] = "text/html; charset=utf-8"
+          context.response.print(OpenAPISpec::SWAGGER_UI_HTML)
+          return
+        end
+
+        # GET /api/v1/openapi.json  →  OpenAPI 3.0 spec
+        if subparts == ["openapi.json"] && method == "GET"
+          scheme = context.request.headers["X-Forwarded-Proto"]? || "http"
+          host_header = context.request.headers["Host"]? || "localhost"
+          context.response.headers["Content-Type"] = "application/json"
+          context.response.print(OpenAPISpec.generate(host_header, scheme: scheme))
+          return
         end
 
         respond_error(context, 404, "NOT_FOUND", "Endpoint not found: #{method} #{path}")

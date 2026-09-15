@@ -75,6 +75,8 @@ module Wgctl
         puts "  wgctl Headless REST API Daemon"
         puts "=================================================="
         puts "REST API:    #{protocol}://#{@host}:#{@port}/api/v1"
+        puts "Swagger UI:  #{protocol}://#{@host}:#{@port}/docs"
+        puts "OpenAPI:     #{protocol}://#{@host}:#{@port}/api/v1/openapi.json"
         puts "Live Stream: #{ws_proto}://#{@host}:#{@port}/api/v1/interfaces/:name/live"
         puts "Token Store: #{@token_store.path}"
         puts "CORS Origin: #{@cors_origin}"

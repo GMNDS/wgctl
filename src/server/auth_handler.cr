@@ -11,7 +11,7 @@ module Wgctl
       property token_store : Auth::TokenStore
       property no_auth_paths : Array(String)
 
-      def initialize(@token_store : Auth::TokenStore, @no_auth_paths : Array(String) = ["/api/v1/health"])
+      def initialize(@token_store : Auth::TokenStore, @no_auth_paths : Array(String) = ["/api/v1/health", "/docs", "/docs/", "/api/v1/openapi.json"])
       end
 
       def call(context : HTTP::Server::Context)
