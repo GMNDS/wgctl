@@ -419,30 +419,14 @@ module Wgctl
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>wgctl API Docs</title>
-        <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
-        <style>
-          body { margin: 0; background: #fafafa; }
-          .topbar { display: none !important; }
-          .swagger-ui .info { margin: 20px 0; }
-        </style>
       </head>
       <body>
-        <div id="swagger-ui"></div>
-        <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
-        <script>
-          SwaggerUIBundle({
-            url: window.location.origin + "/api/v1/openapi.json",
-            dom_id: '#swagger-ui',
-            presets: [SwaggerUIBundle.presets.apis, SwaggerUIBundle.SwaggerUIStandalonePreset],
-            layout: "BaseLayout",
-            deepLinking: true,
-            tryItOutEnabled: true,
-            requestInterceptor: function(req) {
-              // Preserve Authorization header set by user in the UI
-              return req;
-            }
-          });
-        </script>
+        <script
+          id="api-reference"
+          data-url="/api/v1/openapi.json"
+          data-configuration='{"theme":"purple","layout":"modern","defaultHttpClient":{"targetKey":"shell","clientKey":"curl"}}'
+        ></script>
+        <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
       </body>
       </html>
       HTML
