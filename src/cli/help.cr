@@ -340,8 +340,8 @@ OPTIONS:
   -f, --foreground                Run in foreground instead of background (for systemd/Docker)
 
 NOTES:
-  - The daemon starts in the background by default and writes a PID file to /var/run/wgctl-daemon.pid
-  - Logs are written to /var/log/wgctl-daemon.log
+  - The daemon starts in the background by default and writes a PID file to /var/run/wgctl-daemon.pid when /var/run is writable, otherwise /tmp/wgctl-daemon.pid
+  - Logs are written to /var/log/wgctl-daemon.log when /var/log is writable, otherwise /tmp/wgctl-daemon.log
   - Use 'wgctl daemon stop' to stop it and 'wgctl daemon status' to check if it's running
 
 EXAMPLES:
@@ -366,7 +366,7 @@ USAGE:
   wgctl daemon stop
 
 NOTES:
-  Sends SIGTERM to the daemon process identified by /var/run/wgctl-daemon.pid.
+  Sends SIGTERM to the daemon process identified by /var/run/wgctl-daemon.pid when /var/run is writable, otherwise /tmp/wgctl-daemon.pid.
   If the daemon does not exit within 5 seconds, SIGKILL is sent.
 
 EXAMPLES:
@@ -438,7 +438,7 @@ USAGE:
   wgctl daemon <command> [options]
 
 COMMANDS:
-  start [options]                 Start daemon in background (PID: /var/run/wgctl-daemon.pid)
+  start [options]                 Start daemon in background (PID: /var/run/wgctl-daemon.pid when writable, otherwise /tmp/wgctl-daemon.pid)
   stop                            Stop the running daemon
   restart [options]               Restart the daemon
   status                          Show whether the daemon is running

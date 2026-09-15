@@ -6,8 +6,24 @@ require "../output/table"
 module Wgctl
   module Commands
     class DaemonCommand
-      PID_FILE = "/var/run/wgctl-daemon.pid"
-      LOG_FILE = "/var/log/wgctl-daemon.log"
+      # Resolve paths at runtime so non-root falls back to /tmp
+      def self.pid_file : String
+        writable?("/var/run") ? "/var/run/wgctl-daemon.pid" : "/tmp/wgctl-daemon.pid"
+      end
+
+      def self.log_file : String
+        writable?("/var/log") ? "/var/log/wgctl-daemon.log" : "/tmp/wgctl-daemon.log"
+      end
+
+      private def self.writable?(dir : String) : Bool
+        return false unless File.directory?(dir)
+        test = File.join(dir, ".wgctl_write_test")
+        File.write(test, "")
+        File.delete(test)
+        true
+      rescue
+        false
+      end
 
       def self.run(context : CLI::Context, args : Array(String))
         subcmd = args.shift? || "start"
@@ -68,7 +84,7 @@ module Wgctl
         end
 
         if foreground
-          # Write our own PID when running in foreground (spawned by ourselves)
+          # Running as the background child: write our PID, then serve
           write_pid(Process.pid)
           start_server(context, port, host, cert_file, key_file, cors_origin)
         else
@@ -80,35 +96,54 @@ module Wgctl
               exit 1
             end
 
-            # Spawn a new process with --daemon-foreground so it writes PID itself
+            log = log_file
+
+            # Open (or create) the log file before spawning
+            begin
+              Dir.mkdir_p(File.dirname(log))
+              log_fd = File.open(log, "a")
+            rescue ex
+              log = "/tmp/wgctl-daemon.log"
+              log_fd = File.open(log, "a")
+            end
+
             exe = Process.executable_path || "wgctl"
             bg_args = ["daemon", "start", "--daemon-foreground",
                        "--port", port.to_s, "--host", host,
                        "--cors", cors_origin]
-            if c = cert_file; bg_args += ["--cert", c]; end
-            if k = key_file;  bg_args += ["--key",  k]; end
+            bg_args += ["--cert", cert_file] if cert_file
+            bg_args += ["--key",  key_file]  if key_file
 
             child = Process.new(
               exe, bg_args,
               input: Process::Redirect::Close,
-              output: Process::Redirect::Pipe,
-              error: Process::Redirect::Pipe
+              output: log_fd,
+              error: log_fd
             )
+            log_fd.close
 
             # Give it a moment to start and write PID
-            sleep 0.5.seconds
+            sleep 1.second
 
             if process_alive?(child.pid)
               puts "wgctl daemon started (PID #{child.pid})"
               puts "REST API: http://#{host}:#{port}/api/v1"
               puts "Docs:     http://#{host}:#{port}/docs"
-              puts "Logs:     #{LOG_FILE}"
+              puts "Logs:     #{log}"
               puts ""
               puts "To stop:    wgctl daemon stop"
               puts "To restart: wgctl daemon restart"
               puts "To status:  wgctl daemon status"
             else
-              puts "Failed to start daemon. Check #{LOG_FILE} for errors."
+              puts "Failed to start daemon. Check #{log} for errors:"
+              puts ""
+              if File.exists?(log)
+                # Print last 20 lines of log
+                lines = File.read_lines(log)
+                lines.last(20).each { |l| puts "  #{l}" }
+              else
+                puts "  (log file not found)"
+              end
               exit 1
             end
           {% else %}
@@ -145,7 +180,7 @@ module Wgctl
         {% if flag?(:unix) %}
           unless process_alive?(pid)
             puts "wgctl daemon is not running (stale PID #{pid})." unless quiet
-            File.delete(PID_FILE) if File.exists?(PID_FILE)
+            File.delete(pid_file) if File.exists?(pid_file)
             return
           end
 
@@ -169,7 +204,7 @@ module Wgctl
           puts "wgctl daemon stopped (PID #{pid})." unless quiet
         {% end %}
 
-        File.delete(PID_FILE) if File.exists?(PID_FILE)
+        File.delete(pid_file) if File.exists?(pid_file)
       end
 
       # ─── status ──────────────────────────────────────────────────────────────
@@ -178,12 +213,12 @@ module Wgctl
         pid = read_pid
         if pid && process_alive?(pid)
           puts "\e[32m● wgctl daemon is running\e[0m (PID #{pid})"
-          puts "  Logs: #{LOG_FILE}"
+          puts "  Logs: #{log_file}"
         else
           puts "\e[31m● wgctl daemon is not running\e[0m"
-          if File.exists?(PID_FILE)
-            puts "  Stale PID file found — cleaning up."
-            File.delete(PID_FILE)
+          if File.exists?(pid_file)
+            puts "  Stale PID file found (#{pid_file}) — cleaning up."
+            File.delete(pid_file)
           end
         end
       end
@@ -191,17 +226,19 @@ module Wgctl
       # ─── PID helpers ─────────────────────────────────────────────────────────
 
       private def self.read_pid : Int64?
-        return nil unless File.exists?(PID_FILE)
-        File.read(PID_FILE).strip.to_i64?
+        f = pid_file
+        return nil unless File.exists?(f)
+        File.read(f).strip.to_i64?
       rescue
         nil
       end
 
       private def self.write_pid(pid : Int64)
-        Dir.mkdir_p(File.dirname(PID_FILE))
-        File.write(PID_FILE, pid.to_s)
+        f = pid_file
+        Dir.mkdir_p(File.dirname(f))
+        File.write(f, pid.to_s)
       rescue ex
-        STDERR.puts "Warning: could not write PID file #{PID_FILE}: #{ex.message}"
+        STDERR.puts "Warning: could not write PID file: #{ex.message}"
       end
 
       private def self.process_alive?(pid : Int64) : Bool
