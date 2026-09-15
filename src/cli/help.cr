@@ -326,7 +326,7 @@ HELP
         case subcommand
         when "start"
           puts <<-HELP
-wgctl daemon start - Start background REST API and WebSocket live metrics server
+wgctl daemon start - Start the REST API daemon in background
 
 USAGE:
   wgctl daemon start [options]
@@ -337,13 +337,67 @@ OPTIONS:
   --cert <file>                   Path to SSL/TLS certificate chain (enables HTTPS)
   --key <file>                    Path to SSL/TLS private key
   --cors <origin>                 Allowed CORS origin header (default: "*")
+  -f, --foreground                Run in foreground instead of background (for systemd/Docker)
+
+NOTES:
+  - The daemon starts in the background by default and writes a PID file to /var/run/wgctl-daemon.pid
+  - Logs are written to /var/log/wgctl-daemon.log
+  - Use 'wgctl daemon stop' to stop it and 'wgctl daemon status' to check if it's running
 
 EXAMPLES:
-  # Start local daemon on default port 7443
+  # Start daemon in background (default)
   wgctl daemon start
 
-  # Start HTTPS daemon with custom port and certificate
-  wgctl daemon start --port 7443 --cert /etc/ssl/certs/wgctl.crt --key /etc/ssl/private/wgctl.key
+  # Start on custom port
+  wgctl daemon start --port 8080 --host 127.0.0.1
+
+  # Start in foreground (e.g. inside a systemd service or Docker)
+  wgctl daemon start --foreground
+
+  # Start with HTTPS (recommended without reverse proxy)
+  wgctl daemon start --cert /etc/ssl/certs/wgctl.crt --key /etc/ssl/private/wgctl.key
+HELP
+
+        when "stop"
+          puts <<-HELP
+wgctl daemon stop - Stop the running daemon
+
+USAGE:
+  wgctl daemon stop
+
+NOTES:
+  Sends SIGTERM to the daemon process identified by /var/run/wgctl-daemon.pid.
+  If the daemon does not exit within 5 seconds, SIGKILL is sent.
+
+EXAMPLES:
+  wgctl daemon stop
+HELP
+
+        when "restart"
+          puts <<-HELP
+wgctl daemon restart - Restart the daemon
+
+USAGE:
+  wgctl daemon restart [options]
+
+NOTES:
+  Equivalent to 'wgctl daemon stop' followed by 'wgctl daemon start'.
+  Accepts the same options as 'start'.
+
+EXAMPLES:
+  wgctl daemon restart
+  wgctl daemon restart --port 8080
+HELP
+
+        when "status"
+          puts <<-HELP
+wgctl daemon status - Check if the daemon is running
+
+USAGE:
+  wgctl daemon status
+
+EXAMPLES:
+  wgctl daemon status
 HELP
 
         when "token"
@@ -384,7 +438,10 @@ USAGE:
   wgctl daemon <command> [options]
 
 COMMANDS:
-  start [options]                 Start HTTP/WebSocket REST daemon
+  start [options]                 Start daemon in background (PID: /var/run/wgctl-daemon.pid)
+  stop                            Stop the running daemon
+  restart [options]               Restart the daemon
+  status                          Show whether the daemon is running
   token create [options]          Generate a new Bearer authentication token
   token list                      List all API tokens and expiration dates
   token revoke <id|name>          Immediately revoke an API token
@@ -395,18 +452,22 @@ START OPTIONS:
   --cert <file>                   Path to SSL/TLS certificate chain
   --key <file>                    Path to SSL/TLS private key
   --cors <origin>                 Allowed CORS origin (default: "*")
+  -f, --foreground                Run in foreground (for systemd/Docker)
 
 TOKEN OPTIONS:
   --name, -n <name>               Name for the token
   --expires, -e <duration>        Expiration: 7d, 30d, 90d, 1y, never (default: 30d)
 
 EXAMPLES:
-  wgctl daemon start --port 7443
+  wgctl daemon start
+  wgctl daemon status
+  wgctl daemon restart
+  wgctl daemon stop
   wgctl daemon token create --name "Web Dashboard" --expires 90d
   wgctl daemon token list
   wgctl daemon token revoke <token-id>
 
-Run 'wgctl help daemon <start|token>' for detailed options.
+Run 'wgctl help daemon <start|stop|restart|status|token>' for detailed options.
 HELP
         end
       end
