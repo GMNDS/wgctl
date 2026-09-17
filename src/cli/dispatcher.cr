@@ -279,7 +279,8 @@ module Wgctl
              STDIN.tty? &&
              Process.find_executable("sudo")
             exe = Process.executable_path || "wgctl"
-            status = Process.run("sudo", [exe] + original_argv, input: Process::Redirect::Inherit, output: Process::Redirect::Inherit, error: Process::Redirect::Inherit)
+            args_to_forward = original_argv || ARGV
+            status = Process.run("sudo", [exe] + args_to_forward, input: Process::Redirect::Inherit, output: Process::Redirect::Inherit, error: Process::Redirect::Inherit)
             exit(status.exit_code)
           end
         {% end %}
