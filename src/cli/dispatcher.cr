@@ -256,6 +256,18 @@ module Wgctl
           raise "Unknown command: '#{command}'. Run 'wgctl --help' for usage."
         end
       rescue ex
+        # If permission was denied on Unix and sudo is available in a TTY, re-exec via sudo
+        {% if flag?(:unix) %}
+          if (ex.is_a?(File::AccessDeniedError) || (ex.message || "").includes?("Permission denied")) &&
+             LibC.geteuid != 0 &&
+             STDIN.tty? &&
+             Process.find_executable("sudo")
+            exe = Process.executable_path || "wgctl"
+            status = Process.run("sudo", [exe] + argv, input: Process::Redirect::Inherit, output: Process::Redirect::Inherit, error: Process::Redirect::Inherit)
+            exit(status.exit_code)
+          end
+        {% end %}
+
         STDERR.puts "Error: #{ex.message}"
         exit(1)
       end
