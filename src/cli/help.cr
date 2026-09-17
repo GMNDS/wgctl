@@ -35,6 +35,7 @@ COMMANDS BY CATEGORY:
   Headless & REST API:
     daemon start [options]         Run HTTP/WebSocket REST daemon for remote web/app/TUI clients
     daemon token <action>          Manage bearer authentication tokens (create, list, revoke)
+    daemon docs [options]          Export REST API documentation (Markdown or OpenAPI JSON) (alias: docs)
 
   Remote Client:
     remote connect <url> --token   Connect and attach to a remote wgctl daemon (alias: attach)
@@ -437,6 +438,31 @@ EXAMPLES:
   wgctl daemon token revoke "Mobile Client"
 HELP
 
+        when "docs", "openapi"
+          puts <<-HELP
+wgctl daemon docs - Generate OpenAPI specification or Markdown documentation (API.md)
+
+USAGE:
+  wgctl daemon docs [options]
+  wgctl docs [options]
+
+OPTIONS:
+  -o, --output <file>             Save generated documentation to a file (e.g. docs/api.md)
+  --format <markdown|json>        Output format: 'markdown' (default) or 'json'
+  --markdown, --md                Shortcut for --format markdown
+  --json                          Shortcut for --format json (raw OpenAPI 3.0.3 spec)
+
+EXAMPLES:
+  # Print API documentation in Markdown to terminal stdout
+  wgctl daemon docs
+
+  # Generate or update docs/api.md directly
+  wgctl docs -o docs/api.md
+
+  # Export raw OpenAPI 3.0 JSON specification
+  wgctl docs --json -o openapi.json
+HELP
+
         else
           puts <<-HELP
 wgctl daemon - Headless REST API and background server
@@ -452,6 +478,7 @@ COMMANDS:
   token create [options]          Generate a new Bearer authentication token
   token list                      List all API tokens and expiration dates
   token revoke <id|name>          Immediately revoke an API token
+  docs [options]                  Export REST API documentation (Markdown or OpenAPI JSON) (alias: docs)
 
 START OPTIONS:
   -p, --port <port>               Port to bind (default: 7443)
@@ -616,6 +643,8 @@ HELP
           print_init_help
         when "daemon"
           print_daemon_help(subcommand)
+        when "docs"
+          print_daemon_help("docs")
         when "status"
           print_status_help
         when "check"

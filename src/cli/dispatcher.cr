@@ -262,6 +262,8 @@ module Wgctl
           Commands::CheckCommand.run(context, positional)
         when "apply"
           Commands::ApplyCommand.run(context, positional)
+        when "docs"
+          Commands::DaemonCommand.run_docs(context, positional)
         when "version"
           Commands::VersionCommand.run
         when "help"

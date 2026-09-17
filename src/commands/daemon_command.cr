@@ -1,6 +1,8 @@
 require "../cli/context"
 require "../server/daemon"
 require "../server/auth/token_store"
+require "../server/openapi"
+require "../server/openapi_markdown"
 require "../output/table"
 
 module Wgctl
@@ -41,10 +43,12 @@ module Wgctl
           run_status
         when "token"
           run_token(context, args)
+        when "docs", "openapi"
+          run_docs(context, args)
         when "help", "--help", "-h"
           CLI::Help.print_daemon_help
         else
-          raise "Unknown daemon subcommand '#{subcmd}'. Usage: wgctl daemon <start|stop|restart|status|token>"
+          raise "Unknown daemon subcommand '#{subcmd}'. Usage: wgctl daemon <start|stop|restart|status|token|docs>"
         end
       end
 
@@ -354,6 +358,50 @@ module Wgctl
           ($1.to_i * 365).days
         else
           30.days
+        end
+      end
+
+      # ─── docs / openapi ───────────────────────────────────────────────────────
+
+      def self.run_docs(context : CLI::Context, args : Array(String))
+        format = "markdown"
+        out_file : String? = context.output_file
+
+        i = 0
+        while i < args.size
+          case args[i]
+          when "--format"
+            i += 1
+            format = args[i]?.try(&.downcase) || format
+          when "--json"
+            format = "json"
+          when "--markdown", "--md"
+            format = "markdown"
+          when "-o", "--output"
+            i += 1
+            out_file = args[i]?
+          else
+            # Support: `wgctl daemon docs docs/api.md`
+            if out_file.nil? && !args[i].starts_with?("-")
+              out_file = args[i]
+            end
+          end
+          i += 1
+        end
+
+        content = if format == "json"
+                    Server::OpenAPISpec.generate
+                  else
+                    Server::OpenAPIMarkdown.generate
+                  end
+
+        if file = out_file
+          dir = File.dirname(File.expand_path(file))
+          Dir.mkdir_p(dir) unless Dir.exists?(dir)
+          File.write(file, content)
+          puts "Documentação da API gerada com sucesso em: #{file} (#{format})"
+        else
+          print content
         end
       end
     end

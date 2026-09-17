@@ -184,10 +184,10 @@ module Wgctl
 
         # Ping health
         client = Client::ApiClient.new(profile.url, profile.token)
-        start_time = Time.monotonic
+        start_time = Time.instant
         begin
           health = client.health
-          latency_ms = (Time.monotonic - start_time).total_milliseconds.round(1)
+          latency_ms = (Time.instant - start_time).total_milliseconds.round(1)
           version = health["version"]?.try(&.as_s?) || "unknown"
           puts "Latency:   #{latency_ms} ms"
           puts "Remote v:  v#{version}"
