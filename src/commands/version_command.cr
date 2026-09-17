@@ -1,7 +1,7 @@
 module Wgctl
   module Commands
     class VersionCommand
-      VERSION = "0.4.5"
+      VERSION = "0.4.6"
 
       def self.run
         puts "wgctl version #{VERSION}"
