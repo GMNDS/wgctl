@@ -116,8 +116,9 @@ module Wgctl
         status_text = iface.active ? "\e[32mativa\e[0m" : "\e[90minativa\e[0m"
         port_str = iface.effective_listen_port.try(&.to_s) || "N/A"
 
+        mode_indicator = @context.remote? ? " \e[36m[REMOTO: #{@context.remote_client.base_url}]\e[0m" : ""
         puts "\n" + ("=" * 64)
-        puts "  wgctl - Gerenciador WireGuard (#{iface.name})"
+        puts "  wgctl - Gerenciador WireGuard (#{iface.name})#{mode_indicator}"
         puts ("=" * 64)
         puts "Interface: \e[1m#{iface.name}\e[0m (#{status_text}) | Endereço: \e[1m#{iface.effective_address}\e[0m | Porta: \e[1m#{port_str}\e[0m"
         

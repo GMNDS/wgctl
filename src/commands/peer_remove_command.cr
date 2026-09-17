@@ -14,6 +14,15 @@ module Wgctl
 
         query = args[0]
         target_iface = context.interface || args[1]?
+
+        if context.remote?
+          client = context.remote_client
+          iface_name = target_iface || context.interface || client.list_interfaces.first? || "wg0"
+          msg = client.delete_peer(iface_name, query)
+          puts msg
+          return
+        end
+
         iface = context.load_interface(target_iface, hint_command: "peer remove #{query}")
         config_path = iface.config_path
         unless config_path && File.exists?(config_path)

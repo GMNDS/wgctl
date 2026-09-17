@@ -2,6 +2,8 @@ require "../models/interface"
 require "../config/parser"
 require "../wireguard/runner"
 require "../wireguard/dump_parser"
+require "../client/config"
+require "../client/api_client"
 
 module Wgctl
   module CLI
@@ -38,8 +40,49 @@ module Wgctl
       property cors : String = "*"
       property expires : String?
       property foreground : Bool = false
+      property remote_url : String?
+      property remote_token : String?
+      property remote_profile_name : String?
+
+      @remote_client : Client::ApiClient?
+      @remote_checked : Bool = false
 
       def initialize
+      end
+
+      # Returns true if operating against a remote daemon
+      def remote? : Bool
+        init_remote_client unless @remote_checked
+        !@remote_client.nil?
+      end
+
+      def remote_client : Client::ApiClient
+        init_remote_client unless @remote_checked
+        @remote_client.not_nil!
+      end
+
+      private def init_remote_client
+        @remote_checked = true
+        # 1. Explicit CLI flags have highest priority
+        if (url = @remote_url) && (token = @remote_token)
+          @remote_client = Client::ApiClient.new(url, token)
+          return
+        end
+
+        # 2. Check saved remote configuration profiles
+        config = Client::Config.load
+        profile = if name = @remote_profile_name
+                    config.profiles[name]?
+                  else
+                    config.current_profile
+                  end
+
+        if profile
+          @remote_url = profile.url
+          @remote_token = profile.token
+          @interface ||= profile.default_interface
+          @remote_client = Client::ApiClient.new(profile.url, profile.token)
+        end
       end
 
       # Finds all available WireGuard configuration files and active interfaces
@@ -65,6 +108,10 @@ module Wgctl
 
       # Returns sorted list of all unique interface names available (configured or active)
       def discover_interfaces : Array(String)
+        if remote?
+          return remote_client.list_interfaces
+        end
+
         configs = available_configs
         active_ifaces = WireGuard::Runner.list_active_interfaces rescue [] of String
         (configs.keys + active_ifaces).uniq.sort
@@ -160,6 +207,36 @@ module Wgctl
 
       # Loads interface with both parsed config and live runtime dump
       def load_interface(target_name : String? = nil, hint_command : String? = nil) : Models::Interface
+        if remote?
+          target = target_name || @interface
+          unless target
+            ifaces = remote_client.list_interfaces
+            if ifaces.size == 1
+              target = ifaces.first
+            elsif ifaces.size > 1
+              if STDIN.tty? && !@non_interactive
+                puts "\nInterfaces WireGuard disponíveis no servidor remoto:"
+                ifaces.each_with_index(1) do |name, idx|
+                  puts "  #{idx}) #{name}"
+                end
+                print "Selecione uma interface [1-#{ifaces.size}] (Padrão: 1): "
+                input = (STDIN.gets || "").strip
+                selected_idx = input.to_i? || 1
+                selected_idx = 1 if selected_idx < 1 || selected_idx > ifaces.size
+                target = ifaces[selected_idx - 1]
+              else
+                names = ifaces.join(", ")
+                example = hint_command ? "wgctl #{hint_command} -i #{ifaces.first}" : "wgctl -i #{ifaces.first} <command>"
+                raise "Multiple remote interfaces found (#{names}). Please specify an interface with -i or --interface (e.g. #{example})"
+              end
+            else
+              raise "No WireGuard interfaces found on remote server."
+            end
+          end
+
+          return remote_client.get_interface(target.not_nil!)
+        end
+
         iface_name, path = resolve_interface(target_name, hint_command)
 
         if File.exists?(path)

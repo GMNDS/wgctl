@@ -15,6 +15,7 @@ require "../commands/init_command"
 require "../commands/migrate_command"
 require "../commands/menu_command"
 require "../commands/daemon_command"
+require "../commands/remote_command"
 require "./help"
 
 module Wgctl
@@ -178,6 +179,18 @@ module Wgctl
             context.foreground = true
           end
 
+          opts.on("--remote URL", "Target remote wgctl daemon URL (e.g. https://vpn.example.com:7443)") do |url|
+            context.remote_url = url
+          end
+
+          opts.on("-t TOKEN", "--token TOKEN", "Bearer authentication token for remote daemon") do |token|
+            context.remote_token = token
+          end
+
+          opts.on("--profile NAME", "Remote profile name to use from ~/.config/wgctl/remote.json") do |prof|
+            context.remote_profile_name = prof
+          end
+
           opts.on("-v", "--version", "Show version") do
             Commands::VersionCommand.run
             exit(0)
@@ -213,6 +226,8 @@ module Wgctl
           Commands::MenuCommand.run(context, positional)
         when "daemon"
           Commands::DaemonCommand.run(context, positional)
+        when "remote", "attach"
+          Commands::RemoteCommand.run(context, positional)
         when "init"
           Commands::InitCommand.run(context, positional)
         when "migrate"

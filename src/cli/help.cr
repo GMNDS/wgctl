@@ -36,6 +36,13 @@ COMMANDS BY CATEGORY:
     daemon start [options]         Run HTTP/WebSocket REST daemon for remote web/app/TUI clients
     daemon token <action>          Manage bearer authentication tokens (create, list, revoke)
 
+  Remote Client:
+    remote connect <url> --token   Connect and attach to a remote wgctl daemon (alias: attach)
+    remote list                    List saved remote server profiles
+    remote use <profile>           Switch active remote server profile
+    remote status                  Show current remote connection status and latency
+    remote disconnect              Disconnect from remote server and return to local mode
+
   General:
     version                        Show version information
     help [command]                 Show detailed help and examples for a specific command
@@ -619,6 +626,8 @@ HELP
           print_migrate_help
         when "interfaces"
           print_interfaces_help
+        when "remote", "attach"
+          print_remote_help
         when "menu", "tui"
           puts <<-HELP
 wgctl menu - Interactive terminal management assistant (alias: tui)
@@ -642,6 +651,52 @@ HELP
         else
           print_main_help
         end
+      end
+
+      def self.print_remote_help
+        puts <<-HELP
+wgctl remote - Manage remote WireGuard server connections (alias: attach)
+
+USAGE:
+  wgctl remote <action> [arguments...] [options...]
+  wgctl attach <url> --token <token>
+
+ACTIONS:
+  connect <url> --token <token>   Connect to a remote wgctl daemon and set as active profile
+  list                            List all configured remote servers and current active profile
+  use <name>                      Switch active remote server profile
+  status                          Display active remote server health, latency, and version
+  disconnect                      Clear active remote connection and return to local mode
+  remove <name>                   Delete a configured remote profile
+
+OPTIONS:
+  -t, --token <token>             API Bearer token for remote server
+  -n, --name <profile>            Friendly name for remote profile (default: host from URL)
+  -i, --interface <name>          Default interface on remote server (e.g. wg0)
+
+GLOBAL REMOTE FLAGS:
+  Any standard wgctl command can be run against a remote server on the fly:
+  wgctl status --remote https://vpn.example.com:7443 --token <token>
+  wgctl peer add phone --ip auto --remote https://vpn.example.com:7443 --token <token>
+  wgctl menu --remote https://vpn.example.com:7443 --token <token>
+
+EXAMPLES:
+  # 1. Connect and save server as active profile
+  wgctl remote connect https://vpn.example.com:7443 --token wgctl_tok_abc123
+
+  # 2. Check connection status and latency
+  wgctl remote status
+
+  # 3. Use standard commands seamlessly over HTTPS
+  wgctl status
+  wgctl peers
+  wgctl peer add laptop --ip auto
+  wgctl client laptop --qr
+  wgctl menu
+
+  # 4. Disconnect and return to local operation
+  wgctl remote disconnect
+HELP
       end
     end
   end

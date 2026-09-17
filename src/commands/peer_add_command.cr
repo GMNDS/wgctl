@@ -21,6 +21,12 @@ module Wgctl
         end
 
         target_iface = context.interface || args[1]?
+
+        if context.remote?
+          run_remote_add(context, peer_name, target_iface)
+          return
+        end
+
         iface = context.load_interface(target_iface, hint_command: "peer add #{peer_name} --ip auto")
         config_path = iface.config_path
         unless config_path && File.exists?(config_path)
@@ -116,6 +122,41 @@ module Wgctl
 
         puts ""
         puts "To generate client configuration, run:"
+        puts "  wgctl client #{peer_name}"
+        puts "  wgctl client #{peer_name} --qr"
+      end
+
+      private def self.run_remote_add(context : CLI::Context, peer_name : String, target_iface : String?)
+        client = context.remote_client
+        iface_name = target_iface || context.interface || begin
+          ifaces = client.list_interfaces
+          ifaces.first? || "wg0"
+        end
+
+        payload = Hash(String, String | Int32 | Nil){
+          "name" => peer_name,
+          "ip" => context.ip || "auto",
+          "description" => context.description,
+          "device" => context.device,
+          "keepalive" => context.keepalive
+        }
+
+        puts "Adding peer '#{peer_name}' to remote interface '#{iface_name}'..."
+        result = client.add_peer(iface_name, payload)
+
+        assigned_ip = result["allowed_ips"]?.try(&.as_a.first?.try(&.as_s)) || "allocated"
+        pub_key = result["public_key"]?.try(&.as_s) || ""
+
+        puts "✓ Peer '#{peer_name}' added successfully!"
+        puts "Assigned IP: #{assigned_ip}"
+        puts "Public key:  #{pub_key}"
+
+        if qr = result["qr_text"]?.try(&.as_s?)
+          puts "\n#{qr}"
+        end
+
+        puts ""
+        puts "To fetch client configuration:"
         puts "  wgctl client #{peer_name}"
         puts "  wgctl client #{peer_name} --qr"
       end

@@ -14,6 +14,22 @@ module Wgctl
 
         query = args[0]
         target_iface = context.interface || args[1]?
+
+        if context.remote?
+          client = context.remote_client
+          iface_name = target_iface || context.interface || client.list_interfaces.first? || "wg0"
+          payload = Hash(String, String | Int32 | Nil).new
+          payload["name"] = context.name if context.name
+          payload["description"] = context.description if context.description
+          payload["device"] = context.device if context.device
+          payload["ip"] = context.ip if context.ip
+          payload["keepalive"] = context.keepalive if context.keepalive
+
+          updated_peer = client.edit_peer(iface_name, query, payload)
+          puts "✓ Peer '#{updated_peer.name}' updated successfully on remote #{iface_name}."
+          return
+        end
+
         iface = context.load_interface(target_iface, hint_command: "peer edit #{query}")
         config_path = iface.config_path
         unless config_path && File.exists?(config_path)

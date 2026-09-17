@@ -13,6 +13,33 @@ module Wgctl
 
         query = args[0]
         target_iface = context.interface || args[1]?
+
+        if context.remote?
+          client = context.remote_client
+          iface_name = target_iface || context.interface || client.list_interfaces.first? || "wg0"
+
+          if context.qr_code
+            _, qr_text = client.get_peer_qr(iface_name, query)
+            if qr_text
+              puts qr_text
+            else
+              puts "QR code not available from server. Falling back to terminal generation:"
+              conf = client.get_client_config(iface_name, query)
+              puts WireGuard::Runner.generate_qr_terminal(conf)
+            end
+          else
+            output_str = client.get_client_config(iface_name, query)
+            if out_path = context.output_file
+              File.write(out_path, output_str)
+              File.chmod(out_path, 0o600)
+              puts "Client configuration written to: #{out_path} (mode 0600)"
+            else
+              print output_str
+            end
+          end
+          return
+        end
+
         iface = context.load_interface(target_iface, hint_command: "client #{query}")
 
         peer = iface.find_peer(query)
