@@ -22,6 +22,7 @@ module Wgctl
   module CLI
     class Dispatcher
       def self.run(argv : Array(String) = ARGV)
+        original_argv = argv.dup
         # 1. Handle help requests before option parsing to allow rich contextual help
         if argv.first? == "help"
           cmd = argv[1]?
@@ -278,7 +279,7 @@ module Wgctl
              STDIN.tty? &&
              Process.find_executable("sudo")
             exe = Process.executable_path || "wgctl"
-            status = Process.run("sudo", [exe] + argv, input: Process::Redirect::Inherit, output: Process::Redirect::Inherit, error: Process::Redirect::Inherit)
+            status = Process.run("sudo", [exe] + original_argv, input: Process::Redirect::Inherit, output: Process::Redirect::Inherit, error: Process::Redirect::Inherit)
             exit(status.exit_code)
           end
         {% end %}
