@@ -128,7 +128,7 @@ module Wgctl
         puts peer_info
         puts ("-" * 64)
         puts "  1) Exibir status detalhado dos peers (status)"
-        puts "  2) Adicionar novo peer (com alocação automática de IP)"
+        puts "  2) Adicionar novo peer (com alocação automática de IP) [suporta --preshared-key]"
         puts "  3) Nomear ou editar um peer (adicionar nome, descrição, etc.)"
         puts "  4) Gerar configuração de cliente / QR Code (celular)"
         puts "  5) Remover um peer"

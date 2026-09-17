@@ -121,6 +121,9 @@ module Wgctl
         File.chmod(temp_path, 0o600)
 
         # Atomic replacement
+        {% if flag?(:windows) %}
+          File.delete(filepath) if File.exists?(filepath)
+        {% end %}
         File.rename(temp_path, filepath)
 
         filepath

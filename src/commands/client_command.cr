@@ -84,28 +84,7 @@ module Wgctl
       end
 
       private def self.calculate_client_allowed_ips(iface : Models::Interface) : String
-        ipv4 = iface.address.find { |a| a.includes?(".") }
-        return "0.0.0.0/0, ::/0" unless ipv4
-
-        parts = ipv4.split("/")
-        ip_str = parts[0]
-        prefix = parts.size > 1 ? parts[1].to_i? || 24 : 24
-
-        octets = ip_str.split(".").map(&.to_u32)
-        return "0.0.0.0/0" if octets.size != 4
-
-        ip_int = (octets[0] << 24) | (octets[1] << 16) | (octets[2] << 8) | octets[3]
-        mask = prefix == 0 ? 0_u32 : (~0_u32 << (32 - prefix)) & 0xFFFFFFFF_u32
-        net_int = ip_int & mask
-
-        o1 = (net_int >> 24) & 0xFF
-        o2 = (net_int >> 16) & 0xFF
-        o3 = (net_int >> 8) & 0xFF
-        o4 = net_int & 0xFF
-
-        "#{o1}.#{o2}.#{o3}.#{o4}/#{prefix}"
-      rescue
-        "0.0.0.0/0"
+        "0.0.0.0/0, ::/0"
       end
     end
   end
