@@ -112,6 +112,19 @@ module Wgctl
           return {iface_name, configs[iface_name]}
         elsif configs.size > 1
           sorted_names = configs.keys.sort
+          if STDIN.tty? && !@non_interactive
+            puts "\nInterfaces WireGuard disponíveis:"
+            sorted_names.each_with_index(1) do |name, idx|
+              puts "  #{idx}) #{name}"
+            end
+            print "Selecione uma interface [1-#{sorted_names.size}] (Padrão: 1): "
+            input = (STDIN.gets || "").strip
+            selected_idx = input.to_i? || 1
+            selected_idx = 1 if selected_idx < 1 || selected_idx > sorted_names.size
+            chosen_name = sorted_names[selected_idx - 1]
+            return {chosen_name, configs[chosen_name]}
+          end
+
           names = sorted_names.join(", ")
           example = hint_command ? "wgctl #{hint_command} -i #{sorted_names.first}" : "wgctl -i #{sorted_names.first} <command>"
           raise "Multiple WireGuard configurations found (#{names}). Please specify an interface with -i or --interface (e.g. #{example})"
@@ -124,6 +137,19 @@ module Wgctl
           return {target, "/etc/wireguard/#{target}.conf"}
         elsif active_ifaces.size > 1
           sorted_names = active_ifaces.sort
+          if STDIN.tty? && !@non_interactive
+            puts "\nInterfaces WireGuard ativas disponíveis:"
+            sorted_names.each_with_index(1) do |name, idx|
+              puts "  #{idx}) #{name}"
+            end
+            print "Selecione uma interface [1-#{sorted_names.size}] (Padrão: 1): "
+            input = (STDIN.gets || "").strip
+            selected_idx = input.to_i? || 1
+            selected_idx = 1 if selected_idx < 1 || selected_idx > sorted_names.size
+            chosen_name = sorted_names[selected_idx - 1]
+            return {chosen_name, "/etc/wireguard/#{chosen_name}.conf"}
+          end
+
           names = sorted_names.join(", ")
           example = hint_command ? "wgctl #{hint_command} -i #{sorted_names.first}" : "wgctl -i #{sorted_names.first} <command>"
           raise "Multiple active interfaces found (#{names}). Please specify an interface with -i or --interface (e.g. #{example})"
