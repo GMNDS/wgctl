@@ -259,7 +259,7 @@ module Wgctl
         # If permission was denied on Unix and sudo is available in a TTY, re-exec via sudo
         {% if flag?(:unix) %}
           if (ex.is_a?(File::AccessDeniedError) || (ex.message || "").includes?("Permission denied")) &&
-             LibC.geteuid != 0 &&
+             LibC.getuid != 0 &&
              STDIN.tty? &&
              Process.find_executable("sudo")
             exe = Process.executable_path || "wgctl"
