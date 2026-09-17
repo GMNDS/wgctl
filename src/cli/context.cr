@@ -37,6 +37,7 @@ module Wgctl
       property key : String?
       property cors : String = "*"
       property expires : String?
+      property foreground : Bool = false
 
       def initialize
       end

@@ -170,6 +170,14 @@ module Wgctl
             context.expires = exp
           end
 
+          opts.on("-f", "--foreground", "Run daemon in foreground instead of background") do
+            context.foreground = true
+          end
+
+          opts.on("--daemon-foreground", "Internal flag to run daemon process in foreground") do
+            context.foreground = true
+          end
+
           opts.on("-v", "--version", "Show version") do
             Commands::VersionCommand.run
             exit(0)

@@ -56,7 +56,7 @@ module Wgctl
         cert_file = context.cert
         key_file = context.key
         cors_origin = context.cors
-        foreground = false
+        foreground = context.foreground
 
         i = 0
         while i < args.size

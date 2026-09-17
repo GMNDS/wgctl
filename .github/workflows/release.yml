@@ -24,10 +24,10 @@ jobs:
             asset_name: wgctl-linux-amd64
             type: docker-alpine-amd64
 
-          # Linux ARM64 / Raspberry Pi / Graviton (Static Musl)
+          # Linux ARM64 / Raspberry Pi / Graviton (Static Musl, Native ARM64 Runner)
           - os: linux
             arch: arm64
-            runner: ubuntu-latest
+            runner: ubuntu-24.04-arm
             asset_name: wgctl-linux-arm64
             type: docker-alpine-arm64
 
@@ -58,15 +58,11 @@ jobs:
             strip -s ${{ matrix.target.asset_name }}
           "
 
-      # 2. Linux ARM64 (Static Alpine Musl via QEMU)
-      - name: Set up QEMU for ARM64
-        if: matrix.target.type == 'docker-alpine-arm64'
-        uses: docker/setup-qemu-action@v3
-
+      # 2. Linux ARM64 (Static Alpine Musl - Native ARM64 Runner)
       - name: Build Linux ARM64 (Static)
         if: matrix.target.type == 'docker-alpine-arm64'
         run: |
-          docker run --rm --platform linux/arm64 -v "$PWD":/workspace -w /workspace crystallang/crystal:latest-alpine sh -c "
+          docker run --rm -v "$PWD":/workspace -w /workspace crystallang/crystal:latest-alpine sh -c "
             apk add --no-cache make git
             crystal build --release --static --no-debug src/wgctl.cr -o ${{ matrix.target.asset_name }}
             strip -s ${{ matrix.target.asset_name }}
