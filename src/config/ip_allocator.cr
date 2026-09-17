@@ -31,32 +31,32 @@ module Wgctl
         network = ip_int & mask
         broadcast = network | (~mask & 0xFFFFFFFF_u32)
 
-        used_ips = iface.all_assigned_ips
+        used_ips_set = iface.all_assigned_ips.to_set
 
         # Search candidates between (network + 1) and (broadcast - 1)
         # Skip network address and broadcast address
         start_cand = network + 1
         end_cand = broadcast > 0 ? broadcast - 1 : broadcast
 
-        # Also prefer starting from ip_int + 1 if possible, but search whole range
-        candidates = [] of UInt32
-        (start_cand..end_cand).each do |cand|
-          candidates << cand
-        end
-
-        # Sort so we prioritize values after interface IP, but wrap around
-        candidates.sort_by! do |c|
-          if c > ip_int
-            c - ip_int
-          else
-            (c + (broadcast - network)) - ip_int
+        # Phase 1: Search sequentially starting immediately after interface IP up to end_cand
+        first_try_start = ip_int + 1
+        if first_try_start <= end_cand
+          (first_try_start..end_cand).each do |cand|
+            cand_str = int_to_ip(cand)
+            unless used_ips_set.includes?(cand_str)
+              return "#{cand_str}/32"
+            end
           end
         end
 
-        candidates.each do |cand|
-          cand_str = int_to_ip(cand)
-          unless used_ips.includes?(cand_str)
-            return "#{cand_str}/32"
+        # Phase 2: Wrap around from start_cand up to ip_int - 1
+        first_try_end = ip_int > 0 ? ip_int - 1 : 0_u32
+        if start_cand <= first_try_end
+          (start_cand..first_try_end).each do |cand|
+            cand_str = int_to_ip(cand)
+            unless used_ips_set.includes?(cand_str)
+              return "#{cand_str}/32"
+            end
           end
         end
 

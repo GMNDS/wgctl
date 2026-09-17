@@ -32,24 +32,35 @@ module Wgctl
         property path : String
         getter tokens : Array(Token)
 
+        @mutex : Mutex = Mutex.new
+        @last_usage_saved_at : Time = Time.utc - 1.day
+
         def initialize(@path : String = TokenStore.default_path)
           @tokens = [] of Token
           load
         end
 
         def load
-          if File.exists?(@path)
-            content = File.read(@path).strip
-            unless content.empty?
-              token_file = TokenFile.from_json(content) rescue TokenFile.new
-              @tokens = token_file.tokens
+          @mutex.synchronize do
+            if File.exists?(@path)
+              content = File.read(@path).strip
+              unless content.empty?
+                token_file = TokenFile.from_json(content) rescue TokenFile.new
+                @tokens = token_file.tokens
+              end
+            else
+              @tokens = [] of Token
             end
-          else
-            @tokens = [] of Token
           end
         end
 
         def save
+          @mutex.synchronize do
+            save_internal
+          end
+        end
+
+        private def save_internal
           dir = File.dirname(@path)
           FileUtils.mkdir_p(dir) unless Dir.exists?(dir)
 
@@ -66,6 +77,9 @@ module Wgctl
           rescue
           end
 
+          {% if flag?(:windows) %}
+            File.delete(@path) if File.exists?(@path)
+          {% end %}
           File.rename(temp_file, @path)
 
           begin
@@ -94,8 +108,11 @@ module Wgctl
             expires_at: expires_at
           )
 
-          @tokens << token
-          save
+          @mutex.synchronize do
+            @tokens << token
+            save_internal
+          end
+
           {token, full_token}
         end
 
@@ -105,32 +122,44 @@ module Wgctl
           return nil if clean_token.empty?
 
           calculated_hash = Digest::SHA256.hexdigest(clean_token)
-          token = @tokens.find { |t| t.token_hash == calculated_hash }
 
-          if token && token.valid?
-            token.record_usage!
-            save
-            token
-          else
-            nil
+          @mutex.synchronize do
+            token = @tokens.find { |t| t.token_hash == calculated_hash }
+
+            if token && token.valid?
+              token.record_usage!
+              # Debounce disk writes for usage updates (at most once every 60 seconds)
+              now = Time.utc
+              if (now - @last_usage_saved_at) >= 60.seconds
+                @last_usage_saved_at = now
+                save_internal
+              end
+              token
+            else
+              nil
+            end
           end
         end
 
         # Revokes a token by id or name
         def revoke(id_or_name : String) : Bool
-          target = @tokens.find { |t| t.id == id_or_name || t.name == id_or_name }
-          if target && !target.revoked?
-            target.revoke!
-            save
-            true
-          else
-            false
+          @mutex.synchronize do
+            target = @tokens.find { |t| t.id == id_or_name || t.name == id_or_name }
+            if target && !target.revoked?
+              target.revoke!
+              save_internal
+              true
+            else
+              false
+            end
           end
         end
 
         # Returns all tokens
         def list : Array(Token)
-          @tokens
+          @mutex.synchronize do
+            @tokens.dup
+          end
         end
       end
     end

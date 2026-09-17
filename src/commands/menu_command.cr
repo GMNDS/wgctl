@@ -63,8 +63,7 @@ module Wgctl
           when "8"
             handle_apply(iface)
           when "9"
-            InitCommand.run(@context, [] of String)
-            wait_enter
+            handle_init
           when "0", "q", "exit", "sair"
             puts "\nAté logo!"
             break
@@ -124,7 +123,7 @@ module Wgctl
         
         peer_info = "Peers: \e[1m#{iface.peers.size}\e[0m (\e[32m#{online_count} online\e[0m)"
         if unnamed_count > 0
-          peer_info += " | \e[1;33m⚠️  #{unnamed_count} peer(s) sem nome!\e[0m"
+          peer_info += " | \e[1;33m[!] #{unnamed_count} peer(s) sem nome!\e[0m"
         end
         puts peer_info
         puts ("-" * 64)
@@ -134,9 +133,14 @@ module Wgctl
         puts "  4) Gerar configuração de cliente / QR Code (celular)"
         puts "  5) Remover um peer"
         puts "  6) Validar e diagnosticar configurações (check)"
-        puts "  7) Migrar comentários legados do script do Nyr (migrate)"
-        puts "  8) Aplicar alterações no kernel sem reiniciar (apply)"
-        puts "  9) Inicializar novo servidor WireGuard (init)"
+        
+        migrate_label = @context.remote? ? "  7) Migrar comentários legados (migrate) \e[90m[apenas local]\e[0m" : "  7) Migrar comentários legados do script do Nyr (migrate)"
+        apply_label = "  8) Aplicar alterações no kernel sem reiniciar (apply)"
+        init_label = @context.remote? ? "  9) Inicializar novo servidor WireGuard (init) \e[90m[apenas local]\e[0m" : "  9) Inicializar novo servidor WireGuard (init)"
+        
+        puts migrate_label
+        puts apply_label
+        puts init_label
         puts "  0) Sair"
         puts ("-" * 64)
       end
@@ -355,6 +359,13 @@ module Wgctl
       end
 
       private def handle_migrate(iface : Models::Interface)
+        if @context.remote?
+          puts "\n[AVISO] A migração de comentários legados opera diretamente nos arquivos .conf locais do servidor."
+          puts "Execute 'wgctl migrate' diretamente no console do servidor WireGuard."
+          wait_enter
+          return
+        end
+
         puts "\n--- Migração de Comentários do Nyr ---"
         MigrateCommand.run(@context, [iface.name])
         wait_enter
@@ -363,6 +374,18 @@ module Wgctl
       private def handle_apply(iface : Models::Interface)
         puts "\n--- Aplicar Alterações ao Vivo (wg syncconf) ---"
         ApplyCommand.run(@context, [iface.name])
+        wait_enter
+      end
+
+      private def handle_init
+        if @context.remote?
+          puts "\n[AVISO] A inicialização de servidor configura a máquina e o sistema operacional local."
+          puts "Para inicializar um novo servidor WireGuard, execute 'wgctl init' diretamente na máquina servidora."
+          wait_enter
+          return
+        end
+
+        InitCommand.run(@context, [] of String)
         wait_enter
       end
 

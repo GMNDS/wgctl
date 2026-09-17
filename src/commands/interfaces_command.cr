@@ -8,6 +8,30 @@ module Wgctl
   module Commands
     class InterfacesCommand
       def self.run(context : CLI::Context, args : Array(String))
+        if context.remote?
+          client = context.remote_client
+          names = client.list_interfaces
+          if names.empty?
+            if context.json_output
+              puts "[]"
+            else
+              puts "No WireGuard interfaces found on remote server."
+            end
+            return
+          end
+
+          interfaces = names.map do |name|
+            client.get_interface(name)
+          end
+
+          if context.json_output
+            puts Output::JsonFormatter.format_interfaces(interfaces)
+          else
+            puts Output::Formatter.format_interfaces(interfaces)
+          end
+          return
+        end
+
         configs = context.available_configs
         active_ifaces = WireGuard::Runner.list_active_interfaces
 

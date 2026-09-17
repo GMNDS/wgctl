@@ -157,12 +157,19 @@ module Wgctl
       private def execute_request(method : String, path : String, body : String? = nil, headers : HTTP::Headers? = nil) : HTTP::Client::Response
         uri = URI.parse("#{@base_url}#{path}")
         client = HTTP::Client.new(uri)
+        client.connect_timeout = 5.seconds
+        client.read_timeout = 15.seconds
+
         # Configure TLS if HTTPS
         if uri.scheme == "https"
           client.tls?
         end
 
-        client.exec(method, uri.request_target, headers: headers, body: body)
+        begin
+          client.exec(method, uri.request_target, headers: headers, body: body)
+        ensure
+          client.close rescue nil
+        end
       rescue ex
         raise "Remote connection error (#{base_url}): #{ex.message}"
       end

@@ -6,6 +6,10 @@ module Wgctl
   module Commands
     class MigrateCommand
       def self.run(context : CLI::Context, args : Array(String))
+        if context.remote?
+          raise "O comando 'migrate' opera exclusivamente nos arquivos .conf locais do servidor WireGuard."
+        end
+
         target_name = context.interface || args.first?
         iface = context.load_interface(target_name, hint_command: "migrate")
         config_path = iface.config_path
