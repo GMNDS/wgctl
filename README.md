@@ -40,8 +40,17 @@ curl -fsSL https://raw.githubusercontent.com/gmnds/wgctl/main/install.sh | bash
 > curl -fsSL https://raw.githubusercontent.com/gmnds/wgctl/main/install.sh | VERSION=v0.1.0 bash
 > ```
 
-### Windows (Nativo)
-Baixe o executável `wgctl-windows-amd64.exe` da página de [Releases](https://github.com/gmnds/wgctl/releases), renomeie para `wgctl.exe` e adicione ao seu `PATH`.
+### Windows (PowerShell One-liner)
+Para instalar ou atualizar automaticamente e já adicionar ao `PATH` do usuário:
+
+```powershell
+irm https://raw.githubusercontent.com/gmnds/wgctl/main/install.ps1 | iex
+```
+
+> **Dica:** Para instalar uma versão específica no Windows:
+> ```powershell
+> $env:VERSION="v0.5.1"; irm https://raw.githubusercontent.com/gmnds/wgctl/main/install.ps1 | iex
+> ```
 
 ---
 
