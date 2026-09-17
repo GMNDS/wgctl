@@ -1,16 +1,16 @@
 changelog:
   categories:
-    - title: "🚀 Features & Improvements"
+    - title: "Features & Improvements"
       labels:
         - "feat"
         - "feature"
         - "enhancement"
-    - title: "🐛 Bug Fixes"
+    - title: "Bug Fixes"
       labels:
         - "fix"
         - "bug"
         - "hotfix"
-    - title: "🧰 Maintenance & Chores"
+    - title: "Maintenance & Chores"
       labels:
         - "chore"
         - "refactor"
