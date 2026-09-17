@@ -20,8 +20,8 @@ module Wgctl
         ip_str = parts[0].strip
         prefix_len = parts.size > 1 ? parts[1].to_i? || 24 : 24
 
-        octets = ip_str.split(".").map(&.to_u32)
-        if octets.size != 4
+        octets = ip_str.split(".").compact_map(&.to_u32?)
+        if octets.size != 4 || octets.any? { |o| o > 255 }
           raise "Invalid IPv4 address format: #{ip_str}"
         end
 

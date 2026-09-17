@@ -1,6 +1,7 @@
 require "json"
 require "file_utils"
 require "digest/sha256"
+require "crypto/subtle"
 require "random"
 require "./token"
 
@@ -161,7 +162,7 @@ module Wgctl
           calculated_hash = Digest::SHA256.hexdigest(clean_token)
 
           @mutex.synchronize do
-            token = @tokens.find { |t| t.token_hash == calculated_hash }
+            token = @tokens.find { |t| Crypto::Subtle.constant_time_compare(t.token_hash, calculated_hash) }
 
             if token && token.valid?
               token.record_usage!

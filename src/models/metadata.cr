@@ -31,12 +31,22 @@ module Wgctl
       # # wgctl:device=server
       def to_comments : Array(String)
         lines = [] of String
-        lines << "# wgctl:name=#{@name}" if @name
-        lines << "# wgctl:description=#{@description}" if @description
-        lines << "# wgctl:device=#{@device}" if @device
-        lines << "# wgctl:client_private_key=#{@client_private_key}" if @client_private_key
+        if n = @name
+          lines << "# wgctl:name=#{n.gsub(/[\r\n]/, "").strip}"
+        end
+        if d = @description
+          lines << "# wgctl:description=#{d.gsub(/[\r\n]/, "").strip}"
+        end
+        if dev = @device
+          lines << "# wgctl:device=#{dev.gsub(/[\r\n]/, "").strip}"
+        end
+        if k = @client_private_key
+          lines << "# wgctl:client_private_key=#{k.gsub(/[\r\n]/, "").strip}"
+        end
         @extra.each do |k, v|
-          lines << "# wgctl:#{k}=#{v}"
+          clean_k = k.gsub(/[^a-zA-Z0-9_\-]/, "")
+          clean_v = v.gsub(/[\r\n]/, "").strip
+          lines << "# wgctl:#{clean_k}=#{clean_v}"
         end
         lines
       end

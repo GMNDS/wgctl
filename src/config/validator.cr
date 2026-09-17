@@ -59,6 +59,10 @@ module Wgctl
         report = ValidationReport.new(iface.name, iface.peers.size)
 
         # 1. Interface checks
+        unless iface.name =~ /^[a-zA-Z0-9_\-\.]{1,32}$/
+          report.add_error("invalid interface name '#{iface.name}': must be 1-32 characters and contain only alphanumeric, hyphens, underscores, or dots")
+        end
+
         if iface.address.empty?
           report.add_warn("interface #{iface.name} has no Address configured")
         end
@@ -99,13 +103,41 @@ module Wgctl
           if !peer.has_name?
             report.add_warn("peer #{peer.short_key} has no wgctl:name")
           else
-            name = peer.name
-            # Check valid characters for name
-            unless name =~ /^[a-zA-Z0-9_\-\.]+$/
-              report.add_warn("peer name '#{name}' contains special characters; recommended: alphanumeric, hyphens, underscores")
+            name = peer.name.not_nil!
+            # Check valid characters and reject newlines for name
+            if name.includes?("\n") || name.includes?("\r")
+              report.add_error("peer name contains invalid newline characters")
+            elsif !(name =~ /^[a-zA-Z0-9_\-\.]{1,64}$/)
+              report.add_error("peer name '#{name}' contains invalid characters; must be 1-64 alphanumeric, hyphens, underscores, or dots")
             end
             seen_names[name.downcase] ||= [] of String
             seen_names[name.downcase] << peer.short_key
+          end
+
+          # Check Description and Device for CRLF/newline injection
+          if desc = peer.description
+            if desc.includes?("\n") || desc.includes?("\r")
+              report.add_error("peer #{peer_id} description contains invalid newline characters")
+            elsif desc.size > 255
+              report.add_error("peer #{peer_id} description exceeds maximum length of 255 characters")
+            end
+          end
+
+          if dev = peer.device
+            if dev.includes?("\n") || dev.includes?("\r")
+              report.add_error("peer #{peer_id} device contains invalid newline characters")
+            elsif dev.size > 64
+              report.add_error("peer #{peer_id} device exceeds maximum length of 64 characters")
+            end
+          end
+
+          peer.metadata.extra.each do |k, v|
+            if !(k =~ /^[a-zA-Z0-9_\-]{1,64}$/)
+              report.add_error("peer #{peer_id} extra metadata key '#{k}' contains invalid characters")
+            end
+            if v.includes?("\n") || v.includes?("\r")
+              report.add_error("peer #{peer_id} extra metadata value for '#{k}' contains invalid newline characters")
+            end
           end
 
           # Check Allowed IPs

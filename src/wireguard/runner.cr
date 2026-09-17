@@ -78,21 +78,23 @@ module Wgctl
 
         # 2. Write stripped configuration to a secure temporary file
         temp_file = File.tempfile("wgctl-strip-#{interface_name}", ".conf")
-        File.chmod(temp_file.path, 0o600)
-        File.write(temp_file.path, stripped_content)
+        begin
+          File.chmod(temp_file.path, 0o600)
+          File.write(temp_file.path, stripped_content)
 
-        # 3. Run `wg syncconf <interface_name> <temp_file>`
-        sync_stdout = IO::Memory.new
-        sync_stderr = IO::Memory.new
-        sync_status = Process.run("wg", ["syncconf", interface_name, temp_file.path], output: sync_stdout, error: sync_stderr)
+          # 3. Run `wg syncconf <interface_name> <temp_file>`
+          sync_stdout = IO::Memory.new
+          sync_stderr = IO::Memory.new
+          sync_status = Process.run("wg", ["syncconf", interface_name, temp_file.path], output: sync_stdout, error: sync_stderr)
 
-        temp_file.delete rescue nil
-
-        if sync_status.success?
-          {true, "Applied configuration to active interface #{interface_name} via wg syncconf."}
-        else
-          err = sync_stderr.to_s.strip
-          {false, "wg syncconf failed: #{err}"}
+          if sync_status.success?
+            {true, "Applied configuration to active interface #{interface_name} via wg syncconf."}
+          else
+            err = sync_stderr.to_s.strip
+            {false, "wg syncconf failed: #{err}"}
+          end
+        ensure
+          temp_file.delete rescue nil
         end
       rescue ex
         {false, "Failed to apply configuration: #{ex.message}"}

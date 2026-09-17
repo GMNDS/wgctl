@@ -127,6 +127,9 @@ module Wgctl
             raise "Config file not found: #{cfg}"
           end
           iface_name = effective_target || File.basename(cfg, ".conf")
+          unless iface_name =~ /^[a-zA-Z0-9_\-\.]{1,32}$/
+            raise "Invalid interface name '#{iface_name}'. Interface names must contain only alphanumeric characters, hyphens, underscores, or dots (max 32 characters)."
+          end
           return {iface_name, File.expand_path(cfg)}
         end
 
@@ -134,6 +137,10 @@ module Wgctl
 
         # Explicit interface name provided as argument or via -i/--interface (e.g. wg0)
         if target = effective_target
+          unless target =~ /^[a-zA-Z0-9_\-\.]{1,32}$/
+            raise "Invalid interface name '#{target}'. Interface names must contain only alphanumeric characters, hyphens, underscores, or dots (max 32 characters)."
+          end
+
           if path = configs[target]?
             return {target, path}
           end
