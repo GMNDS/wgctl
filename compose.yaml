@@ -1,0 +1,55 @@
+services:
+  wgctl:
+    build: .
+    image: gmnds/wgctl:latest
+    container_name: wgctl
+    restart: unless-stopped
+
+    # --------------------------------------------------------------------------
+    # REDE (PADRÃO: MODO HOST)
+    # Compartilha a stack de rede do host. Permite:
+    # 1. Acessar serviços locais do host diretamente em 10.13.14.1:porta.
+    # 2. Roteamento Site-to-Site (LAN-to-LAN) transparente nas tabelas do kernel.
+    # --------------------------------------------------------------------------
+    network_mode: host
+
+    # --------------------------------------------------------------------------
+    # POLÍTICA DE MÍNIMO PRIVILÉGIO (Zero '--privileged')
+    # --------------------------------------------------------------------------
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_ADMIN    # Criar e gerenciar interfaces WireGuard e rotas de rede
+      - NET_RAW      # Regras de firewall iptables/ip6tables para NAT
+    security_opt:
+      - no-new-privileges:true
+
+    volumes:
+      - ./data/wireguard:/etc/wireguard
+      - ./data/config:/root/.config/wgctl
+
+    # Injeção de segredo via Docker Secret (opcional, pode ser substituído por WGCTL_TOKEN)
+    # secrets:
+    #   - wgctl_token
+
+    environment:
+      # Parâmetros de Auto-Init (aplicados SOMENTE se o volume /etc/wireguard estiver vazio)
+      - WGCTL_AUTO_INIT=true
+      - WGCTL_INTERFACE=wg0
+      - WGCTL_SUBNET=10.13.14.1/24
+      - WGCTL_PORT=51820
+      - WGCTL_PUBLIC_IP=auto
+      - WGCTL_DNS=1.1.1.1, 1.0.0.1
+      # - WGCTL_WAN=eth0
+      # - WGCTL_FIRST_CLIENT=admin
+      # - WGCTL_NO_FIREWALL=false
+
+      # Autenticação da REST API (escolha UMA das opções abaixo):
+      # Opção A: Token direto via ENV
+      - WGCTL_TOKEN=wgctl_tok_change_me_to_a_secure_token
+      # Opção B: Token via Docker Secret file
+      # - WGCTL_TOKEN_FILE=/run/secrets/wgctl_token
+
+# secrets:
+#   wgctl_token:
+#     file: ./wgctl_token.txt

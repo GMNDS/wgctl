@@ -51,6 +51,43 @@ module Wgctl
             else
               @tokens = [] of Token
             end
+
+            ensure_env_tokens
+          end
+        end
+
+        private def ensure_env_tokens
+          raw_token : String? = nil
+
+          if env_file = ENV["WGCTL_TOKEN_FILE"]?
+            if File.exists?(env_file)
+              content = File.read(env_file).strip
+              raw_token = content unless content.empty?
+            end
+          end
+
+          if raw_token.nil?
+            if env_tok = ENV["WGCTL_TOKEN"]?
+              raw_token = env_tok.strip unless env_tok.strip.empty?
+            end
+          end
+
+          if token_str = raw_token
+            token_hash = Digest::SHA256.hexdigest(token_str)
+            existing = @tokens.find { |t| t.token_hash == token_hash }
+            unless existing
+              prefix = "#{token_str[0...Math.min(10, token_str.size)]}..."
+              env_token = Token.new(
+                id: "tok_env_#{Random::Secure.hex(4)}",
+                name: "env-secret",
+                token_hash: token_hash,
+                prefix: prefix,
+                created_at: Time.utc,
+                expires_at: nil
+              )
+              @tokens << env_token
+              save_internal
+            end
           end
         end
 

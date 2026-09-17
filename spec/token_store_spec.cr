@@ -48,4 +48,40 @@ describe Wgctl::Server::Auth::TokenStore do
 
     File.delete(tmp_path) rescue nil
   end
+
+  it "automatically registers and authenticates tokens from WGCTL_TOKEN" do
+    tmp_path = File.tempfile("env_tok_test", ".json").path
+    File.delete(tmp_path) rescue nil
+
+    ENV["WGCTL_TOKEN"] = "wgctl_tok_secret_from_env_123456"
+    begin
+      store = Wgctl::Server::Auth::TokenStore.new(tmp_path)
+      token = store.authenticate("wgctl_tok_secret_from_env_123456")
+      token.should_not be_nil
+      token.not_nil!.name.should eq("env-secret")
+    ensure
+      ENV.delete("WGCTL_TOKEN")
+      File.delete(tmp_path) rescue nil
+    end
+  end
+
+  it "automatically registers and authenticates tokens from WGCTL_TOKEN_FILE" do
+    tmp_path = File.tempfile("file_tok_test", ".json").path
+    File.delete(tmp_path) rescue nil
+
+    secret_file = File.tempfile("docker_secret", ".txt").path
+    File.write(secret_file, "wgctl_tok_docker_secret_789012\n")
+
+    ENV["WGCTL_TOKEN_FILE"] = secret_file
+    begin
+      store = Wgctl::Server::Auth::TokenStore.new(tmp_path)
+      token = store.authenticate("wgctl_tok_docker_secret_789012")
+      token.should_not be_nil
+      token.not_nil!.name.should eq("env-secret")
+    ensure
+      ENV.delete("WGCTL_TOKEN_FILE")
+      File.delete(secret_file) rescue nil
+      File.delete(tmp_path) rescue nil
+    end
+  end
 end
