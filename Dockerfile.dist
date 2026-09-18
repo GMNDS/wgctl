@@ -11,7 +11,7 @@ RUN apk add --no-cache \
     iptables \
     ip6tables \
     ca-certificates \
-    qrencode \
+    libqrencode-tools \
     tzdata
 
 COPY release-assets/wgctl-linux-${TARGETARCH} /usr/local/bin/wgctl

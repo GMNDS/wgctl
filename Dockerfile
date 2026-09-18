@@ -21,7 +21,7 @@ RUN apk add --no-cache \
     iptables \
     ip6tables \
     ca-certificates \
-    qrencode \
+    libqrencode-tools \
     tzdata
 
 # Copia o binário estático e o script de inicialização
