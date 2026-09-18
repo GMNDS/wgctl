@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   build:
@@ -101,6 +102,7 @@ jobs:
     name: Publish GitHub Release
     needs: build
     runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@v4
 
@@ -113,9 +115,85 @@ jobs:
       - name: List Release Assets
         run: ls -lh release-assets/
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Publish GitHub Release via gh CLI
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          NOTES_FILE="RELEASE_NOTES_${TAG}.md"
+
+          # Limpa eventual draft residual que tenha falhado anteriormente
+          gh release delete "$TAG" --yes 2>/dev/null || true
+
+          if [ -f "$NOTES_FILE" ]; then
+            echo "Publicando release $TAG com notas de $NOTES_FILE..."
+            gh release create "$TAG" release-assets/* \
+              --title "$TAG" \
+              --notes-file "$NOTES_FILE" \
+              --verify-tag
+          else
+            echo "Publicando release $TAG com notas geradas automaticamente..."
+            gh release create "$TAG" release-assets/* \
+              --title "$TAG" \
+              --generate-notes \
+              --verify-tag
+          fi
+
+  docker:
+    name: Build & Push Container Package (GHCR)
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Linux AMD64 binary
+        uses: actions/download-artifact@v4
         with:
-          files: release-assets/*
-          generate_release_notes: true
+          name: wgctl-linux-amd64
+          path: release-assets
+
+      - name: Download Linux ARM64 binary
+        uses: actions/download-artifact@v4
+        with:
+          name: wgctl-linux-arm64
+          path: release-assets
+
+      - name: Set executable permissions
+        run: |
+          chmod +x release-assets/wgctl-linux-amd64
+          chmod +x release-assets/wgctl-linux-arm64
+          ls -lh release-assets/
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry (ghcr.io)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=tag
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+
+      - name: Build and push Multi-Arch Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.dist
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

@@ -1,7 +1,7 @@
 services:
   wgctl:
     build: .
-    image: gmnds/wgctl:latest
+    image: ghcr.io/gmnds/wgctl:latest
     container_name: wgctl
     restart: unless-stopped
 

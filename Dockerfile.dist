@@ -1,0 +1,28 @@
+# ==============================================================================
+# Dockerfile para empacotamento e distribuição de release (Multi-Arch)
+# Utiliza os binários compilados estaticamente para cada arquitetura
+# ==============================================================================
+FROM alpine:3.19
+
+ARG TARGETARCH
+
+RUN apk add --no-cache \
+    wireguard-tools \
+    iptables \
+    ip6tables \
+    ca-certificates \
+    qrencode \
+    tzdata
+
+COPY release-assets/wgctl-linux-${TARGETARCH} /usr/local/bin/wgctl
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
+RUN chmod 755 /usr/local/bin/wgctl /usr/local/bin/docker-entrypoint.sh
+
+WORKDIR /etc/wireguard
+
+EXPOSE 51820/udp
+EXPOSE 7443/tcp
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["wgctl", "daemon", "start", "--foreground", "--host", "0.0.0.0", "--port", "7443"]

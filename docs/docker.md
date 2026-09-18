@@ -69,7 +69,7 @@ Neste modelo, o container roda em um namespace de rede isolado (`bridge`), expon
 services:
   wgctl:
     build: .
-    image: gmnds/wgctl:latest
+    image: ghcr.io/gmnds/wgctl:latest
     container_name: wgctl
     restart: unless-stopped
 
