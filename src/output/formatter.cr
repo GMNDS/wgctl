@@ -57,6 +57,9 @@ module Wgctl
         end
         io.puts sprintf("%-14s%s", "Public Key:", peer.public_key)
         io.puts sprintf("%-14s%s", "Allowed IPs:", peer.clean_ips)
+        if client_ips = peer.metadata.client_allowed_ips
+          io.puts sprintf("%-14s%s", "Client Routing:", client_ips)
+        end
         io.puts sprintf("%-14s%s", "Endpoint:", peer.effective_endpoint)
         io.puts sprintf("%-14s%s", "Handshake:", peer.effective_handshake)
         io.puts sprintf("%-14s%s", "Received:", peer.effective_rx)

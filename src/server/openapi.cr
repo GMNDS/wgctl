@@ -57,37 +57,40 @@ module Wgctl
                   "name"             => {"type" => "string", "example" => "notebook"},
                   "has_name"         => {"type" => "boolean"},
                   "public_key"       => {"type" => "string"},
-                  "allowed_ips"      => {"type" => "array", "items" => {"type" => "string"}, "example" => ["10.13.14.2/32"]},
-                  "primary_ip"       => {"type" => "string", "example" => "10.13.14.2/32"},
-                  "description"      => {"type" => "string"},
-                  "device"           => {"type" => "string", "example" => "laptop"},
-                  "online"           => {"type" => "boolean"},
-                  "endpoint"         => {"type" => "string", "example" => "200.1.2.3:45678", "nullable" => true},
-                  "latest_handshake" => {"type" => "string", "format" => "date-time", "nullable" => true},
-                  "transfer_rx"      => {"type" => "integer", "example" => 1048576},
-                  "transfer_tx"      => {"type" => "integer", "example" => 2097152}
+                  "allowed_ips"        => {"type" => "array", "items" => {"type" => "string"}, "example" => ["10.13.14.2/32"]},
+                  "primary_ip"         => {"type" => "string", "example" => "10.13.14.2/32"},
+                  "description"        => {"type" => "string"},
+                  "device"             => {"type" => "string", "example" => "laptop"},
+                  "client_allowed_ips" => {"type" => "string", "example" => "vpn", "nullable" => true},
+                  "online"             => {"type" => "boolean"},
+                  "endpoint"           => {"type" => "string", "example" => "200.1.2.3:45678", "nullable" => true},
+                  "latest_handshake"   => {"type" => "string", "format" => "date-time", "nullable" => true},
+                  "transfer_rx"        => {"type" => "integer", "example" => 1048576},
+                  "transfer_tx"        => {"type" => "integer", "example" => 2097152}
                 }
               },
               "AddPeerRequest" => {
                 "type"     => "object",
                 "required" => ["name"],
                 "properties" => {
-                  "name"        => {"type" => "string", "description" => "Nome único do peer", "example" => "cel-joao"},
-                  "public_key"  => {"type" => "string", "description" => "Chave pública do cliente. Se omitido, o servidor gera o par de chaves (modo managed)."},
-                  "ip"          => {"type" => "string", "description" => "IP a alocar. 'auto' para o próximo livre.", "default" => "auto", "example" => "auto"},
-                  "device"      => {"type" => "string", "description" => "Tipo de dispositivo", "enum" => ["phone", "laptop", "pc", "server"], "default" => "device"},
-                  "description" => {"type" => "string", "description" => "Descrição livre"},
-                  "keepalive"   => {"type" => "integer", "description" => "PersistentKeepalive em segundos", "default" => 25}
+                  "name"               => {"type" => "string", "description" => "Nome único do peer", "example" => "cel-joao"},
+                  "public_key"         => {"type" => "string", "description" => "Chave pública do cliente. Se omitido, o servidor gera o par de chaves (modo managed)."},
+                  "ip"                 => {"type" => "string", "description" => "IP a alocar. 'auto' para o próximo livre.", "default" => "auto", "example" => "auto"},
+                  "device"             => {"type" => "string", "description" => "Tipo de dispositivo", "enum" => ["phone", "laptop", "pc", "server"], "default" => "device"},
+                  "description"        => {"type" => "string", "description" => "Descrição livre"},
+                  "client_allowed_ips" => {"type" => "string", "description" => "Client AllowedIPs routing preset ('all', 'vpn') or custom CIDRs", "example" => "vpn"},
+                  "keepalive"          => {"type" => "integer", "description" => "PersistentKeepalive em segundos", "default" => 25}
                 }
               },
               "EditPeerRequest" => {
                 "type" => "object",
                 "properties" => {
-                  "name"        => {"type" => "string"},
-                  "description" => {"type" => "string"},
-                  "device"      => {"type" => "string"},
-                  "ip"          => {"type" => "string"},
-                  "keepalive"   => {"type" => "integer"}
+                  "name"               => {"type" => "string"},
+                  "description"        => {"type" => "string"},
+                  "device"             => {"type" => "string"},
+                  "ip"                 => {"type" => "string"},
+                  "client_allowed_ips" => {"type" => "string", "description" => "Client AllowedIPs routing preset ('all', 'vpn') or custom CIDRs", "example" => "vpn"},
+                  "keepalive"          => {"type" => "integer"}
                 }
               },
               "ClientConfig" => {
@@ -373,7 +376,8 @@ module Wgctl
                 "description" => "Retorna a configuração WireGuard pronta para o dispositivo cliente.\n\nUse `Accept: text/plain` para baixar o arquivo `.conf` diretamente.",
                 "parameters"  => [
                   {"name" => "name", "in" => "path", "required" => true, "schema" => {"type" => "string"}},
-                  {"name" => "key", "in" => "path", "required" => true, "schema" => {"type" => "string"}}
+                  {"name" => "key", "in" => "path", "required" => true, "schema" => {"type" => "string"}},
+                  {"name" => "allowed_ips", "in" => "query", "required" => false, "schema" => {"type" => "string"}, "description" => "Override client AllowedIPs ('all', 'vpn', or custom CIDRs)"}
                 ],
                 "responses" => {
                   "200" => {
@@ -396,6 +400,11 @@ module Wgctl
               "get" => {
                 "tags"      => ["Peers"],
                 "summary"   => "QR Code do cliente",
+                "parameters" => [
+                  {"name" => "name", "in" => "path", "required" => true, "schema" => {"type" => "string"}},
+                  {"name" => "key", "in" => "path", "required" => true, "schema" => {"type" => "string"}},
+                  {"name" => "allowed_ips", "in" => "query", "required" => false, "schema" => {"type" => "string"}, "description" => "Override client AllowedIPs ('all', 'vpn', or custom CIDRs)"}
+                ],
                 "responses" => {
                   "200" => {
                     "description" => "QR Code ASCII e configuração",

@@ -54,6 +54,7 @@ module Wgctl
           "device" => peer.device,
           "public_key" => peer.public_key,
           "allowed_ips" => peer.allowed_ips,
+          "client_allowed_ips" => peer.metadata.client_allowed_ips,
           "endpoint" => peer.effective_endpoint,
           "handshake" => peer.effective_handshake,
           "latest_handshake_epoch" => peer.runtime.try(&.latest_handshake_epoch) || 0_i64,

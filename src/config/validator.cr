@@ -131,6 +131,14 @@ module Wgctl
             end
           end
 
+          if client_ips = peer.metadata.client_allowed_ips
+            if client_ips.includes?("\n") || client_ips.includes?("\r")
+              report.add_error("peer #{peer_id} client_allowed_ips contains invalid newline characters")
+            elsif client_ips.size > 255
+              report.add_error("peer #{peer_id} client_allowed_ips exceeds maximum length of 255 characters")
+            end
+          end
+
           peer.metadata.extra.each do |k, v|
             if !(k =~ /^[a-zA-Z0-9_\-]{1,64}$/)
               report.add_error("peer #{peer_id} extra metadata key '#{k}' contains invalid characters")

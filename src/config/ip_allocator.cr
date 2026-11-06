@@ -63,6 +63,24 @@ module Wgctl
         raise "Subnet #{ipv4_entry} has no free IP addresses available"
       end
 
+      # Calculates the base network CIDR for the interface's primary IPv4 subnet, e.g. "10.13.14.0/24"
+      def self.calculate_vpn_subnet(iface : Models::Interface) : String
+        ipv4_entry = iface.address.find { |a| a.includes?(".") }
+        return "10.13.14.0/24" unless ipv4_entry
+
+        parts = ipv4_entry.split("/")
+        ip_str = parts[0].strip
+        prefix_len = parts.size > 1 ? parts[1].to_i? || 24 : 24
+
+        octets = ip_str.split(".").compact_map(&.to_u32?)
+        return "#{ip_str}/#{prefix_len}" if octets.size != 4 || octets.any? { |o| o > 255 }
+
+        ip_int = (octets[0] << 24) | (octets[1] << 16) | (octets[2] << 8) | octets[3]
+        mask = prefix_len == 0 ? 0_u32 : (~0_u32 << (32 - prefix_len)) & 0xFFFFFFFF_u32
+        network = ip_int & mask
+        "#{int_to_ip(network)}/#{prefix_len}"
+      end
+
       private def self.int_to_ip(val : UInt32) : String
         o1 = (val >> 24) & 0xFF
         o2 = (val >> 16) & 0xFF

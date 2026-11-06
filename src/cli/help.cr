@@ -99,6 +99,7 @@ OPTIONS:
   --ip <IP|auto>                  Assign specific IP (e.g. 10.13.14.9/32) or use 'auto' for next free IP
   --description <text>            Friendly description or notes (e.g. "Alice work laptop")
   --device <type>                 Device type (e.g. mobile, laptop, desktop, server)
+  --allowed-ips <all|vpn|CIDRs>   Client AllowedIPs routing preset ('all', 'vpn') or custom CIDRs
   --keepalive <seconds>           PersistentKeepalive interval in seconds (default: 25)
   --preshared-key                 Generate and require a Curve25519 Pre-shared Key (PSK)
   --no-apply                      Write to .conf file without applying changes to active interface
@@ -137,6 +138,7 @@ OPTIONS:
   --description <text>            Update description
   --device <type>                 Update device type (mobile, laptop, desktop, server)
   --ip <IP>                       Change peer IP address (e.g. 10.13.14.20/32)
+  --allowed-ips <all|vpn|CIDRs>   Update client AllowedIPs routing preset ('all', 'vpn') or custom CIDRs
   --keepalive <seconds>           Update PersistentKeepalive interval
   --no-apply                      Do not apply changes to active interface
   --dry-run                       Simulate changes without modifying files or kernel
@@ -264,12 +266,19 @@ OPTIONS:
   -i, --interface <name>          Specify target WireGuard interface (e.g. wg0, wg1)
   --qr                            Display client configuration as terminal QR code (ANSI UTF-8)
   -o, --output <file>             Save client configuration to file with strict mode 0600 permissions
+  --allowed-ips <all|vpn|CIDRs>   Routing preset ('all' = 0.0.0.0/0, ::/0, 'vpn' = interface subnet) or custom CIDRs
   --endpoint <host:port>          Override server public endpoint (e.g. vpn.example.com:51820)
   -c, --config <file>             Path to WireGuard server configuration file
 
 EXAMPLES:
   # Print client configuration to terminal
   wgctl client phone
+
+  # Generate client config routing only VPN traffic (split-tunnel)
+  wgctl client phone --allowed-ips vpn
+
+  # Generate client config routing custom subnets
+  wgctl client phone --allowed-ips "10.13.14.0/24, 192.168.1.0/24"
 
   # Specify interface via flag or positional
   wgctl client phone -i wg0
@@ -304,6 +313,7 @@ OPTIONS:
   --subnet <CIDR>                 Internal VPN subnet CIDR (default: 10.13.14.1/24)
   --dns <servers>                 DNS resolvers for VPN clients (default: 1.1.1.1, 1.0.0.1)
   --first-client <name>           Generate initial client configuration (default: client1)
+  --allowed-ips <all|vpn|CIDRs>   Initial client AllowedIPs routing preset ('all', 'vpn') or custom CIDRs
   -y, --non-interactive           Run unattended using flags or sensible defaults without prompting
   --skip-packages                 Skip automatic detection and installation of OS packages
   --no-firewall                   Skip adding PostUp/PostDown iptables NAT firewall rules

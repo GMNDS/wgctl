@@ -3,6 +3,7 @@ require "../models/interface"
 require "../models/peer"
 require "../models/metadata"
 require "../config/writer"
+require "../config/allowed_ips"
 require "../wireguard/keys"
 require "../wireguard/system_detector"
 require "../wireguard/firewall_manager"
@@ -195,7 +196,8 @@ module Wgctl
             name: clean_client_name,
             description: "Initial client",
             device: "mobile",
-            client_private_key: client_priv
+            client_private_key: client_priv,
+            client_allowed_ips: context.client_allowed_ips
           )
 
           peer = Models::Peer.new(
@@ -207,6 +209,7 @@ module Wgctl
           iface.peers << peer
 
           # Build client configuration string
+          client_allowed_ips = Config::AllowedIPs.resolve(iface, peer, context.client_allowed_ips)
           c_conf = IO::Memory.new
           c_conf.puts "[Interface]"
           c_conf.puts "PrivateKey = #{client_priv}"
@@ -216,7 +219,7 @@ module Wgctl
           c_conf.puts "[Peer]"
           c_conf.puts "PublicKey = #{server_pub}"
           c_conf.puts "Endpoint = #{public_ip}:#{port}"
-          c_conf.puts "AllowedIPs = 0.0.0.0/0, ::/0"
+          c_conf.puts "AllowedIPs = #{client_allowed_ips}"
           c_conf.puts "PersistentKeepalive = 25"
           first_client_conf_str = c_conf.to_s
           first_client_target_file = File.join(Dir.current, "#{clean_client_name}.conf")

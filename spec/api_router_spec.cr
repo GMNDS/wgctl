@@ -130,11 +130,30 @@ describe "wgctl Headless REST API" do
       edit_json = JSON.parse(res_edit.body)
       edit_json["data"]["description"].as_s.should eq("Updated Phone Description")
 
-      # 9. Test GET client config
+      # 9. Test GET client config with AllowedIPs resolution
       res_conf = HTTP::Client.get("http://127.0.0.1:#{port}/api/v1/interfaces/testwg/peers/managed-phone/config", headers: headers)
       res_conf.status_code.should eq(200)
       conf_json = JSON.parse(res_conf.body)
       conf_json["data"]["config"].as_s.should contain("10.50.0.2/32")
+      conf_json["data"]["config"].as_s.should contain("AllowedIPs = 0.0.0.0/0, ::/0")
+
+      # Query parameter override: ?allowed_ips=vpn
+      res_conf_vpn = HTTP::Client.get("http://127.0.0.1:#{port}/api/v1/interfaces/testwg/peers/managed-phone/config?allowed_ips=vpn", headers: headers)
+      res_conf_vpn.status_code.should eq(200)
+      JSON.parse(res_conf_vpn.body)["data"]["config"].as_s.should contain("AllowedIPs = 10.50.0.0/24")
+
+      # Query parameter override: custom CIDRs
+      res_conf_custom = HTTP::Client.get("http://127.0.0.1:#{port}/api/v1/interfaces/testwg/peers/managed-phone/config?allowed_ips=10.50.0.0/24,192.168.10.0/24", headers: headers)
+      res_conf_custom.status_code.should eq(200)
+      JSON.parse(res_conf_custom.body)["data"]["config"].as_s.should contain("AllowedIPs = 10.50.0.0/24, 192.168.10.0/24")
+
+      # Persist client_allowed_ips via PATCH
+      res_edit_ips = HTTP::Client.patch("http://127.0.0.1:#{port}/api/v1/interfaces/testwg/peers/managed-phone", headers: headers, body: {"client_allowed_ips" => "vpn"}.to_json)
+      res_edit_ips.status_code.should eq(200)
+      JSON.parse(res_edit_ips.body)["data"]["client_allowed_ips"].as_s.should eq("vpn")
+
+      res_conf_persisted = HTTP::Client.get("http://127.0.0.1:#{port}/api/v1/interfaces/testwg/peers/managed-phone/config", headers: headers)
+      JSON.parse(res_conf_persisted.body)["data"]["config"].as_s.should contain("AllowedIPs = 10.50.0.0/24")
 
       # 10. Test DELETE peer
       res_del = HTTP::Client.delete("http://127.0.0.1:#{port}/api/v1/interfaces/testwg/peers/managed-phone", headers: headers)

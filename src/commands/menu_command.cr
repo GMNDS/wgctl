@@ -172,12 +172,30 @@ module Wgctl
         print "Descrição [opcional]: "
         description = (gets || "").strip
 
+        puts "\nOpções de roteamento (AllowedIPs do cliente):"
+        puts "  1) Toda a internet (0.0.0.0/0, ::/0) [Padrão - Full Tunnel]"
+        puts "  2) Apenas tráfego da VPN (ex: 10.13.14.0/24) [Split Tunnel]"
+        puts "  3) Personalizado (lista de CIDRs)"
+        print "Escolha [1-3, padrão 1]: "
+        routing_choice = (gets || "").strip
+        selected_allowed_ips = case routing_choice
+        when "2"
+          "vpn"
+        when "3"
+          print "Digite os CIDRs separados por vírgula (ex: 10.13.14.0/24, 192.168.1.0/24): "
+          custom_cidrs = (gets || "").strip
+          custom_cidrs.empty? ? nil : custom_cidrs
+        else
+          nil
+        end
+
         ctx = @context.dup
         ctx.config_file = iface.config_path
         ctx.interface = iface.name
         ctx.ip = ip
         ctx.device = device
         ctx.description = description unless description.empty?
+        ctx.client_allowed_ips = selected_allowed_ips
 
         begin
           PeerAddCommand.run(ctx, [name, iface.name])

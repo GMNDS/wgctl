@@ -102,8 +102,12 @@ module Wgctl
         data["message"]?.try(&.as_s) || "Peer removed"
       end
 
-      def get_client_config(iface_name : String, key_or_name : String) : String
-        response = get("/api/v1/interfaces/#{URI.encode_www_form(iface_name)}/peers/#{URI.encode_www_form(key_or_name)}/config", headers: HTTP::Headers{"Accept" => "text/plain"})
+      def get_client_config(iface_name : String, key_or_name : String, allowed_ips : String? = nil) : String
+        path = "/api/v1/interfaces/#{URI.encode_www_form(iface_name)}/peers/#{URI.encode_www_form(key_or_name)}/config"
+        if allowed_ips && !allowed_ips.empty?
+          path += "?allowed_ips=#{URI.encode_www_form(allowed_ips)}"
+        end
+        response = get(path, headers: HTTP::Headers{"Accept" => "text/plain"})
         if response.status_code == 200
           response.body
         else
@@ -113,8 +117,12 @@ module Wgctl
         end
       end
 
-      def get_peer_qr(iface_name : String, key_or_name : String) : Tuple(String, String?)
-        response = get("/api/v1/interfaces/#{URI.encode_www_form(iface_name)}/peers/#{URI.encode_www_form(key_or_name)}/qr")
+      def get_peer_qr(iface_name : String, key_or_name : String, allowed_ips : String? = nil) : Tuple(String, String?)
+        path = "/api/v1/interfaces/#{URI.encode_www_form(iface_name)}/peers/#{URI.encode_www_form(key_or_name)}/qr"
+        if allowed_ips && !allowed_ips.empty?
+          path += "?allowed_ips=#{URI.encode_www_form(allowed_ips)}"
+        end
+        response = get(path)
         data = extract_data(response)
         config = data["config"].as_s
         qr_text = data["qr_text"]?.try(&.as_s?)
@@ -196,11 +204,13 @@ module Wgctl
         name = item["name"]?.try(&.as_s)
         desc = item["description"]?.try(&.as_s)
         dev = item["device"]?.try(&.as_s)
+        client_allowed_ips = item["client_allowed_ips"]?.try(&.as_s?)
 
         metadata = Models::Metadata.new(
           name: name,
           description: desc,
-          device: dev
+          device: dev,
+          client_allowed_ips: client_allowed_ips
         )
 
         allowed_ips = item["allowed_ips"]?.try(&.as_a.map(&.as_s)) || [] of String

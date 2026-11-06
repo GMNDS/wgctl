@@ -2,6 +2,7 @@ require "../cli/context"
 require "../models/peer"
 require "../config/writer"
 require "../config/validator"
+require "../config/allowed_ips"
 require "../wireguard/keys"
 require "../wireguard/runner"
 
@@ -21,16 +22,16 @@ module Wgctl
           iface_name = target_iface || context.interface || client.list_interfaces.first? || "wg0"
 
           if context.qr_code
-            _, qr_text = client.get_peer_qr(iface_name, query)
+            _, qr_text = client.get_peer_qr(iface_name, query, context.client_allowed_ips)
             if qr_text
               puts qr_text
             else
               puts "QR code not available from server. Falling back to terminal generation:"
-              conf = client.get_client_config(iface_name, query)
+              conf = client.get_client_config(iface_name, query, context.client_allowed_ips)
               puts WireGuard::Runner.generate_qr_terminal(conf)
             end
           else
-            output_str = client.get_client_config(iface_name, query)
+            output_str = client.get_client_config(iface_name, query, context.client_allowed_ips)
             if out_path = context.output_file
               File.write(out_path, output_str)
               File.chmod(out_path, 0o600)
@@ -83,7 +84,13 @@ module Wgctl
 
       # Builds the client `.conf` content. `client_priv` is passed explicitly so
       # callers can render a freshly generated key that is never persisted.
-      def self.render_client_config(iface : Models::Interface, peer : Models::Peer, context : CLI::Context, client_priv : String) : String
+      def self.render_client_config(
+        iface : Models::Interface,
+        peer : Models::Peer,
+        context : CLI::Context,
+        client_priv : String,
+        explicit_allowed_ips : String? = nil
+      ) : String
         # Determine server public key
         server_pub = iface.runtime_public_key
         if (server_pub.nil? || server_pub.empty?) && iface.private_key
@@ -96,7 +103,7 @@ module Wgctl
         endpoint = context.endpoint || detect_endpoint(iface, server_port)
 
         # Determine AllowedIPs for client
-        allowed_ips = calculate_client_allowed_ips(iface)
+        allowed_ips = calculate_client_allowed_ips(iface, peer, explicit_allowed_ips || context.client_allowed_ips)
 
         client_conf = IO::Memory.new
         client_conf.puts "[Interface]"
@@ -165,8 +172,8 @@ module Wgctl
         "#{host}:#{port}"
       end
 
-      private def self.calculate_client_allowed_ips(iface : Models::Interface) : String
-        "0.0.0.0/0, ::/0"
+      def self.calculate_client_allowed_ips(iface : Models::Interface, peer : Models::Peer? = nil, explicit : String? = nil) : String
+        Config::AllowedIPs.resolve(iface, peer, explicit)
       end
     end
   end

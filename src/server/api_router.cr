@@ -8,6 +8,7 @@ require "../models/metadata"
 require "../config/writer"
 require "../config/validator"
 require "../config/ip_allocator"
+require "../config/allowed_ips"
 require "../wireguard/keys"
 require "../wireguard/runner"
 require "../commands/version_command"
@@ -241,11 +242,13 @@ module Wgctl
           # The generated private key is kept in memory only so the response can
           # hand the client config back once. Metadata never serializes it, so it
           # is NOT written to the server .conf (zero-knowledge).
+          client_allowed_ips = body["client_allowed_ips"]?.try(&.as_s.strip)
           metadata = Models::Metadata.new(
             name: name,
             description: description,
             device: device,
-            client_private_key: client_priv_key
+            client_private_key: client_priv_key,
+            client_allowed_ips: (client_allowed_ips && !client_allowed_ips.empty?) ? client_allowed_ips : nil
           )
 
           new_peer = Models::Peer.new(
@@ -336,6 +339,10 @@ module Wgctl
             peer.persistent_keepalive = ka
           end
 
+          if client_allowed_ips = body["client_allowed_ips"]?.try(&.as_s.strip)
+            peer.metadata.client_allowed_ips = client_allowed_ips.empty? ? nil : client_allowed_ips
+          end
+
           # Validate
           report = Config::Validator.validate(iface)
           unless report.valid?
@@ -386,7 +393,8 @@ module Wgctl
           return
         end
 
-        client_conf = generate_client_conf(iface, peer)
+        allowed_ips_param = context.request.query_params["allowed_ips"]?
+        client_conf = generate_client_conf(iface, peer, allowed_ips_param)
 
         if context.request.headers["Accept"]? == "text/plain"
           context.response.headers["Content-Type"] = "text/plain; charset=utf-8"
@@ -408,7 +416,8 @@ module Wgctl
           return
         end
 
-        client_conf = generate_client_conf(iface, peer)
+        allowed_ips_param = context.request.query_params["allowed_ips"]?
+        client_conf = generate_client_conf(iface, peer, allowed_ips_param)
         qr_text = WireGuard::Runner.generate_qr_terminal(client_conf) rescue nil
 
         respond_json(context, 200, {
@@ -482,6 +491,7 @@ module Wgctl
           "primary_ip" => peer.primary_ip,
           "description" => peer.description || "",
           "device" => peer.device || "",
+          "client_allowed_ips" => peer.metadata.client_allowed_ips,
           "online" => peer.online?,
           "endpoint" => peer.effective_endpoint,
           "latest_handshake" => peer.effective_handshake,
@@ -490,7 +500,7 @@ module Wgctl
         }
       end
 
-      private def generate_client_conf(iface : Models::Interface, peer : Models::Peer) : String
+      private def generate_client_conf(iface : Models::Interface, peer : Models::Peer, explicit_allowed_ips : String? = nil) : String
         client_priv = peer.metadata.client_private_key || "<REPLACE_WITH_CLIENT_PRIVATE_KEY>"
         server_pub = iface.runtime_public_key
         if (server_pub.nil? || server_pub.empty?) && iface.private_key
@@ -500,7 +510,7 @@ module Wgctl
 
         server_port = iface.effective_listen_port || 51820
         endpoint = detect_endpoint(iface, server_port)
-        allowed_ips = calculate_client_allowed_ips(iface)
+        allowed_ips = calculate_client_allowed_ips(iface, peer, explicit_allowed_ips)
 
         io = IO::Memory.new
         io.puts "[Interface]"
@@ -526,17 +536,8 @@ module Wgctl
         "#{host}:#{port}"
       end
 
-      private def calculate_client_allowed_ips(iface : Models::Interface) : String
-        ipv4 = iface.address.find { |a| a.includes?(".") }
-        return "0.0.0.0/0, ::/0" unless ipv4
-        parts = ipv4.split("/")
-        ip_str = parts[0]
-        segments = ip_str.split(".")
-        if segments.size == 4
-          "#{segments[0]}.#{segments[1]}.#{segments[2]}.0/24"
-        else
-          "0.0.0.0/0, ::/0"
-        end
+      private def calculate_client_allowed_ips(iface : Models::Interface, peer : Models::Peer? = nil, explicit : String? = nil) : String
+        Config::AllowedIPs.resolve(iface, peer, explicit)
       end
 
       private def respond_json(context : HTTP::Server::Context, status_code : Int32, data : Object)

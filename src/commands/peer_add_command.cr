@@ -77,7 +77,8 @@ module Wgctl
           name: peer_name,
           description: context.description,
           device: context.device,
-          client_private_key: client_private_key
+          client_private_key: client_private_key,
+          client_allowed_ips: context.client_allowed_ips
         )
 
         new_peer = Models::Peer.new(
@@ -160,7 +161,8 @@ module Wgctl
           "ip" => context.ip || "auto",
           "description" => context.description,
           "device" => context.device,
-          "keepalive" => context.keepalive
+          "keepalive" => context.keepalive,
+          "client_allowed_ips" => context.client_allowed_ips
         }
 
         puts "Adding peer '#{peer_name}' to remote interface '#{iface_name}'..."

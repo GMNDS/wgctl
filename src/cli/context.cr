@@ -23,6 +23,7 @@ module Wgctl
       property keepalive : Int32?
       property preshared_key : String?
       property endpoint : String?
+      property client_allowed_ips : String?
       property no_apply : Bool = false
       property wan_interface : String?
       property public_ip : String?

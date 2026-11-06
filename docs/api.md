@@ -268,6 +268,7 @@ Adiciona um novo peer à interface.
 | `ip` | `string` | Não | `auto` | IP a alocar. 'auto' para o próximo livre. |
 | `device` | `string` | Não | `device` | Tipo de dispositivo |
 | `description` | `string` | Não | `-` | Descrição livre |
+| `client_allowed_ips` | `string` | Não | `-` | Client AllowedIPs routing preset ('all', 'vpn') or custom CIDRs |
 | `keepalive` | `integer` | Não | `25` | PersistentKeepalive em segundos |
 
 #### Exemplo de Requisição (cURL)
@@ -349,6 +350,7 @@ Atualiza campos de um peer. Apenas os campos enviados são alterados. `PUT` tamb
 | `description` | `string` | Não | `-` | - |
 | `device` | `string` | Não | `-` | - |
 | `ip` | `string` | Não | `-` | - |
+| `client_allowed_ips` | `string` | Não | `-` | Client AllowedIPs routing preset ('all', 'vpn') or custom CIDRs |
 | `keepalive` | `integer` | Não | `-` | - |
 
 #### Exemplo de Requisição (cURL)
@@ -419,6 +421,7 @@ Use `Accept: text/plain` para baixar o arquivo `.conf` diretamente.
 |:---|:---|:---|:---:|:---|
 | `name` | `path` | `string` | Sim | - |
 | `key` | `path` | `string` | Sim | - |
+| `allowed_ips` | `query` | `string` | Não | Override client AllowedIPs ('all', 'vpn', or custom CIDRs) |
 
 #### Exemplo de Requisição (cURL)
 
@@ -448,6 +451,7 @@ curl -X GET "http://127.0.0.1:7443/api/v1/interfaces/{name}/peers/{key}/config" 
 |:---|:---|:---|:---:|:---|
 | `name` | `path` | `string` | Sim | - |
 | `key` | `path` | `string` | Sim | - |
+| `allowed_ips` | `query` | `string` | Não | Override client AllowedIPs ('all', 'vpn', or custom CIDRs) |
 
 #### Exemplo de Requisição (cURL)
 
@@ -498,6 +502,7 @@ curl -X GET "http://127.0.0.1:7443/api/v1/interfaces/{name}/peers/{key}/qr" \
 | `primary_ip` | `string` | Não | `10.13.14.2/32` |
 | `description` | `string` | Não | `-` |
 | `device` | `string` | Não | `laptop` |
+| `client_allowed_ips` | `string` | Não | `vpn` |
 | `online` | `boolean` | Não | `-` |
 | `endpoint` | `string` | Não | `200.1.2.3:45678` |
 | `latest_handshake` | `string` | Não | `-` |
@@ -513,6 +518,7 @@ curl -X GET "http://127.0.0.1:7443/api/v1/interfaces/{name}/peers/{key}/qr" \
 | `ip` | `string` | Não | `auto` |
 | `device` | `string` | Não | `Tipo de dispositivo` |
 | `description` | `string` | Não | `Descrição livre` |
+| `client_allowed_ips` | `string` | Não | `vpn` |
 | `keepalive` | `integer` | Não | `PersistentKeepalive em segundos` |
 
 ### Modelo: `EditPeerRequest`
@@ -523,6 +529,7 @@ curl -X GET "http://127.0.0.1:7443/api/v1/interfaces/{name}/peers/{key}/qr" \
 | `description` | `string` | Não | `-` |
 | `device` | `string` | Não | `-` |
 | `ip` | `string` | Não | `-` |
+| `client_allowed_ips` | `string` | Não | `vpn` |
 | `keepalive` | `integer` | Não | `-` |
 
 ### Modelo: `ClientConfig`

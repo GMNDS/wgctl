@@ -98,6 +98,14 @@ module Wgctl
             context.endpoint = ep
           end
 
+          opts.on("--allowed-ips IPS", "Client AllowedIPs preset ('all', 'vpn') or custom CIDRs") do |ips|
+            context.client_allowed_ips = ips
+          end
+
+          opts.on("--client-allowed-ips IPS", "Alias for --allowed-ips") do |ips|
+            context.client_allowed_ips = ips
+          end
+
           opts.on("-o FILE", "--output FILE", "Save generated client configuration to a file (mode 0600)") do |file|
             context.output_file = file
           end

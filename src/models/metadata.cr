@@ -9,6 +9,7 @@ module Wgctl
       property description : String?
       property device : String?
       property client_private_key : String?
+      property client_allowed_ips : String?
       property extra : Hash(String, String) = Hash(String, String).new
 
       def initialize(
@@ -16,12 +17,13 @@ module Wgctl
         @description : String? = nil,
         @device : String? = nil,
         @client_private_key : String? = nil,
+        @client_allowed_ips : String? = nil,
         @extra : Hash(String, String) = Hash(String, String).new
       )
       end
 
       def empty? : Bool
-        @name.nil? && @description.nil? && @device.nil? && @client_private_key.nil? && @extra.empty?
+        @name.nil? && @description.nil? && @device.nil? && @client_private_key.nil? && @client_allowed_ips.nil? && @extra.empty?
       end
 
       # Serializes metadata into WireGuard comment lines
@@ -46,6 +48,9 @@ module Wgctl
         if dev = @device
           lines << "# wgctl:device=#{dev.gsub(/[\r\n]/, "").strip}"
         end
+        if ips = @client_allowed_ips
+          lines << "# wgctl:client_allowed_ips=#{ips.gsub(/[\r\n]/, "").strip}"
+        end
         @extra.each do |k, v|
           clean_k = k.gsub(/[^a-zA-Z0-9_\-]/, "")
           clean_v = v.gsub(/[\r\n]/, "").strip
@@ -68,6 +73,8 @@ module Wgctl
             metadata.device = value
           when "client_private_key"
             metadata.client_private_key = value
+          when "client_allowed_ips"
+            metadata.client_allowed_ips = value
           else
             metadata.extra[key] = value
           end

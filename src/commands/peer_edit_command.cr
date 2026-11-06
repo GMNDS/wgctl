@@ -24,6 +24,7 @@ module Wgctl
           payload["device"] = context.device if context.device
           payload["ip"] = context.ip if context.ip
           payload["keepalive"] = context.keepalive if context.keepalive
+          payload["client_allowed_ips"] = context.client_allowed_ips if context.client_allowed_ips
 
           updated_peer = client.edit_peer(iface_name, query, payload)
           puts "✓ Peer '#{updated_peer.name}' updated successfully on remote #{iface_name}."
@@ -86,6 +87,14 @@ module Wgctl
         if ka = context.keepalive
           changes << "keepalive: #{peer.persistent_keepalive} -> #{ka}"
           peer.persistent_keepalive = ka
+        end
+
+        if new_allowed_ips = context.client_allowed_ips
+          clean_ips = new_allowed_ips.strip
+          if clean_ips != (peer.metadata.client_allowed_ips || "")
+            changes << "client_allowed_ips: '#{peer.metadata.client_allowed_ips}' -> '#{clean_ips}'"
+            peer.metadata.client_allowed_ips = clean_ips.empty? ? nil : clean_ips
+          end
         end
 
         if changes.empty?
