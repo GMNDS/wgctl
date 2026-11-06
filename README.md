@@ -49,7 +49,7 @@ irm https://raw.githubusercontent.com/gmnds/wgctl/main/install.ps1 | iex
 
 > **Dica:** Para instalar uma versão específica no Windows:
 > ```powershell
-> $env:VERSION="v0.5.1"; irm https://raw.githubusercontent.com/gmnds/wgctl/main/install.ps1 | iex
+> $env:VERSION="v0.6.1"; irm https://raw.githubusercontent.com/gmnds/wgctl/main/install.ps1 | iex
 > ```
 
 ---

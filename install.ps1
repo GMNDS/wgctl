@@ -39,7 +39,7 @@ if (-not $version -or $version -eq "latest") {
         $version = $latest.tag_name
     } catch {
         Write-Host "Error: could not determine the latest version for $repo." -ForegroundColor Red
-        Write-Host "Set it explicitly, e.g.: `$env:VERSION=\"v0.6.0\"; irm ... | iex"
+        Write-Host "Set it explicitly, e.g.: `$env:VERSION=\"v0.6.1\"; irm ... | iex"
         exit 1
     }
 }

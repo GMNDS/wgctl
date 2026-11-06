@@ -1,4 +1,4 @@
-# wgctl REST API (v0.6.0)
+# wgctl REST API (v0.6.1)
 
 > **Base URL:** `http(s)://<host>:<port>/api/v1`  
 > **Porta padrão:** `7443`  
@@ -475,7 +475,7 @@ curl -X GET "http://127.0.0.1:7443/api/v1/interfaces/{name}/peers/{key}/qr" \
 | Propriedade | Tipo | Obrigatório | Exemplo / Descrição |
 |:---|:---|:---:|:---|
 | `status` | `string` | Não | `ok` |
-| `version` | `string` | Não | `0.6.0` |
+| `version` | `string` | Não | `0.6.1` |
 | `timestamp` | `string` | Não | `-` |
 
 ### Modelo: `Interface`
