@@ -251,10 +251,19 @@ module Wgctl
             client_allowed_ips: (client_allowed_ips && !client_allowed_ips.empty?) ? client_allowed_ips : nil
           )
 
+          # Optional pre-shared key
+          psk : String? = nil
+          if body["preshared_key"]?.try(&.as_bool?) == true || body["preshared_key"]?.try(&.as_s?) == "generate"
+            psk = WireGuard::Keys.generate_preshared_key
+          elsif explicit_psk = body["preshared_key"]?.try(&.as_s?)
+            psk = explicit_psk unless explicit_psk.strip.empty?
+          end
+
           new_peer = Models::Peer.new(
             public_key: client_pub_key,
             allowed_ips: [allocated_ip],
             persistent_keepalive: keepalive,
+            preshared_key: psk,
             metadata: metadata
           )
 
@@ -341,6 +350,12 @@ module Wgctl
 
           if client_allowed_ips = body["client_allowed_ips"]?.try(&.as_s.strip)
             peer.metadata.client_allowed_ips = client_allowed_ips.empty? ? nil : client_allowed_ips
+          end
+
+          if body["preshared_key"]?.try(&.as_bool?) == true || body["preshared_key"]?.try(&.as_s?) == "generate"
+            peer.preshared_key = WireGuard::Keys.generate_preshared_key
+          elsif explicit_psk = body["preshared_key"]?.try(&.as_s?)
+            peer.preshared_key = explicit_psk.empty? ? nil : explicit_psk
           end
 
           # Validate
@@ -522,6 +537,9 @@ module Wgctl
         io.puts ""
         io.puts "[Peer]"
         io.puts "PublicKey = #{server_pub}"
+        if psk = peer.preshared_key
+          io.puts "PresharedKey = #{psk}" unless psk.strip.empty?
+        end
         io.puts "Endpoint = #{endpoint}"
         io.puts "AllowedIPs = #{allowed_ips}"
         io.puts "PersistentKeepalive = #{peer.persistent_keepalive || 25}"

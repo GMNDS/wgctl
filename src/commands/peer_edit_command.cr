@@ -25,6 +25,7 @@ module Wgctl
           payload["ip"] = context.ip if context.ip
           payload["keepalive"] = context.keepalive if context.keepalive
           payload["client_allowed_ips"] = context.client_allowed_ips if context.client_allowed_ips
+          payload["preshared_key"] = context.preshared_key if context.preshared_key
 
           updated_peer = client.edit_peer(iface_name, query, payload)
           puts "✓ Peer '#{updated_peer.name}' updated successfully on remote #{iface_name}."
@@ -95,6 +96,12 @@ module Wgctl
             changes << "client_allowed_ips: '#{peer.metadata.client_allowed_ips}' -> '#{clean_ips}'"
             peer.metadata.client_allowed_ips = clean_ips.empty? ? nil : clean_ips
           end
+        end
+
+        if context.preshared_key
+          new_psk = WireGuard::Keys.generate_preshared_key
+          changes << "preshared_key: generated new Curve25519 pre-shared key"
+          peer.preshared_key = new_psk
         end
 
         if changes.empty?

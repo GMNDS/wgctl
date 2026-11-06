@@ -218,6 +218,9 @@ module Wgctl
           c_conf.puts ""
           c_conf.puts "[Peer]"
           c_conf.puts "PublicKey = #{server_pub}"
+          if psk = peer.preshared_key
+            c_conf.puts "PresharedKey = #{psk}" unless psk.strip.empty?
+          end
           c_conf.puts "Endpoint = #{public_ip}:#{port}"
           c_conf.puts "AllowedIPs = #{client_allowed_ips}"
           c_conf.puts "PersistentKeepalive = 25"

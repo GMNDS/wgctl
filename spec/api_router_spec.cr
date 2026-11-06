@@ -99,13 +99,14 @@ describe "wgctl Headless REST API" do
       add_json["data"]["allowed_ips"].as_a.first.as_s.should eq("10.50.0.2/32")
       managed_pub = add_json["data"]["public_key"].as_s
 
-      # 6. Test POST in Zero-Knowledge Mode (client supplies public key)
+      # 6. Test POST in Zero-Knowledge Mode (client supplies public key and PSK)
       zk_pub = "ZeroKnowledgeDummyPublicKey12345678901234="
       add_zk_payload = {
-        "name"       => "zk-laptop",
-        "public_key" => zk_pub,
-        "device"     => "laptop",
-        "ip"         => "auto"
+        "name"          => "zk-laptop",
+        "public_key"    => zk_pub,
+        "device"        => "laptop",
+        "ip"            => "auto",
+        "preshared_key" => "generate"
       }.to_json
 
       res_add_zk = HTTP::Client.post("http://127.0.0.1:#{port}/api/v1/interfaces/testwg/peers", headers: headers, body: add_zk_payload)
@@ -114,6 +115,7 @@ describe "wgctl Headless REST API" do
       zk_json["data"]["mode"].as_s.should eq("zero_knowledge")
       zk_json["data"]["public_key"].as_s.should eq(zk_pub)
       zk_json["data"]["allowed_ips"].as_a.first.as_s.should eq("10.50.0.3/32")
+      zk_json["data"]["client_config"].as_s.should contain("PresharedKey = ")
 
       # 7. Test GET list peers
       res_peers = HTTP::Client.get("http://127.0.0.1:#{port}/api/v1/interfaces/testwg/peers", headers: headers)
@@ -154,6 +156,9 @@ describe "wgctl Headless REST API" do
 
       res_conf_persisted = HTTP::Client.get("http://127.0.0.1:#{port}/api/v1/interfaces/testwg/peers/managed-phone/config", headers: headers)
       JSON.parse(res_conf_persisted.body)["data"]["config"].as_s.should contain("AllowedIPs = 10.50.0.0/24")
+
+      res_zk_conf = HTTP::Client.get("http://127.0.0.1:#{port}/api/v1/interfaces/testwg/peers/zk-laptop/config", headers: headers)
+      JSON.parse(res_zk_conf.body)["data"]["config"].as_s.should contain("PresharedKey = ")
 
       # 10. Test DELETE peer
       res_del = HTTP::Client.delete("http://127.0.0.1:#{port}/api/v1/interfaces/testwg/peers/managed-phone", headers: headers)

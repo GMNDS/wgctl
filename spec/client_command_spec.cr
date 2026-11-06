@@ -135,4 +135,72 @@ describe "wgctl client" do
 
     FileUtils.rm_rf(tmp_dir)
   end
+
+  it "includes PresharedKey in client config when peer has preshared_key" do
+    tmp_dir = File.tempfile("client_test_psk", "").path
+    File.delete(tmp_dir) rescue nil
+    Dir.mkdir_p(tmp_dir)
+
+    config_path = File.join(tmp_dir, "wg0.conf")
+    output_path = File.join(tmp_dir, "astrum-sc.conf")
+    test_psk = "yD8BqXhXFjXq4rK7wX+9jR0tQ1lE5mP8yZ3uI2oA4s="
+    File.write(config_path, <<-CONF
+    [Interface]
+    Address = 10.13.14.1/24
+    ListenPort = 51820
+    PrivateKey = server-private-key
+
+    # wgctl:name=astrum-sc
+    [Peer]
+    PublicKey = astrum-public-key
+    PresharedKey = #{test_psk}
+    AllowedIPs = 10.13.14.2/32
+    CONF
+    )
+
+    ctx = Wgctl::CLI::Context.new
+    ctx.config_file = config_path
+    ctx.output_file = output_path
+
+    Wgctl::Commands::ClientCommand.run(ctx, ["astrum-sc"])
+
+    output = File.read(output_path)
+    output.should contain("PublicKey = ")
+    output.should contain("PresharedKey = #{test_psk}")
+    output.should contain("AllowedIPs = 0.0.0.0/0, ::/0")
+
+    FileUtils.rm_rf(tmp_dir)
+  end
+
+  it "omits PresharedKey when peer has no preshared_key" do
+    tmp_dir = File.tempfile("client_test_nopsk", "").path
+    File.delete(tmp_dir) rescue nil
+    Dir.mkdir_p(tmp_dir)
+
+    config_path = File.join(tmp_dir, "wg0.conf")
+    output_path = File.join(tmp_dir, "regular.conf")
+    File.write(config_path, <<-CONF
+    [Interface]
+    Address = 10.13.14.1/24
+    ListenPort = 51820
+    PrivateKey = server-private-key
+
+    # wgctl:name=regular
+    [Peer]
+    PublicKey = regular-public-key
+    AllowedIPs = 10.13.14.2/32
+    CONF
+    )
+
+    ctx = Wgctl::CLI::Context.new
+    ctx.config_file = config_path
+    ctx.output_file = output_path
+
+    Wgctl::Commands::ClientCommand.run(ctx, ["regular"])
+
+    output = File.read(output_path)
+    output.should_not contain("PresharedKey")
+
+    FileUtils.rm_rf(tmp_dir)
+  end
 end
