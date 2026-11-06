@@ -169,7 +169,7 @@ Todas as chamadas autenticadas exigem o cabeçalho `Authorization: Bearer <token
 * `DELETE /api/v1/interfaces/:name/peers/:key` - Remove peer e sincroniza ao vivo
 * `GET /api/v1/interfaces/:name/peers/:key/config` - Obtém configuração `.conf` do cliente
 * `GET /api/v1/interfaces/:name/peers/:key/qr` - Obtém dados e texto de QR Code
-* `GET /api/v1/interfaces/:name/live?token=<token>` - Conexão WebSocket para métricas de tráfego ao vivo
+* `GET /api/v1/interfaces/:name/live` - Conexão WebSocket para métricas de tráfego ao vivo (para o handshake WebSocket, o token pode ser passado em `?token=<token>`, pois browsers não permitem header customizado; nas demais rotas use sempre o header `Authorization`)
 
 ### 4. Migrar Comentários Legados (Nyr wireguard-install)
 Se você já possui um servidor configurado pelo script legado do Nyr (`# BEGIN_PEER`), o `wgctl` reconhece os nomes automaticamente. Para convertê-los em metadados oficiais `# wgctl:*`:
@@ -286,6 +286,11 @@ Exibir QR Code diretamente no terminal para escanear no celular (iOS/Android):
 wgctl client mobile --qr
 ```
 
+Regenerar a configuração (rotação de chaves — gera um novo par, atualiza a chave pública do peer no servidor e aplica ao vivo):
+```bash
+wgctl client mobile --rotate
+```
+
 ### 13. Validação e Diagnóstico de Configuração
 Detecta chaves públicas duplicadas, IPs em conflito, nomes duplicados e peers sem metadados:
 ```bash
@@ -324,13 +329,14 @@ O `wgctl` armazena as informações adicionais dos peers diretamente no arquivo 
 # wgctl:name=asteri-c
 # wgctl:description=Contabo Germany
 # wgctl:device=server
-# wgctl:client_private_key=...
 [Peer]
 PublicKey = AsteriCPublicKey...
 AllowedIPs = 10.13.14.9/32
 ```
 
 O WireGuard ignora essas linhas, garantindo compatibilidade total com `wg-quick` e ferramentas nativas.
+
+> **Zero-knowledge:** a chave privada dos clientes **nunca** é gravada no servidor — só a chave pública é necessária lá. A configuração do cliente é exibida uma única vez na criação; para regerá-la depois, use rotação de chaves (`wgctl client <peer> --rotate`), que gera um novo par e atualiza a chave pública do peer no servidor.
 
 ---
 

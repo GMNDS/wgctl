@@ -6,6 +6,7 @@ require "../config/ip_allocator"
 require "../config/validator"
 require "../wireguard/keys"
 require "../wireguard/runner"
+require "./client_command"
 
 module Wgctl
   module Commands
@@ -120,10 +121,31 @@ module Wgctl
           end
         end
 
-        puts ""
-        puts "To generate client configuration, run:"
-        puts "  wgctl client #{peer_name}"
-        puts "  wgctl client #{peer_name} --qr"
+        # Show the client configuration once: the private key is NOT stored on
+        # the server (zero-knowledge). Rendering uses the in-memory key, which is
+        # dropped from the persisted metadata by the writer.
+        client_conf = ClientCommand.render_client_config(iface, new_peer, context, client_private_key)
+
+        if context.qr_code
+          puts ""
+          begin
+            puts WireGuard::Runner.generate_qr_terminal(client_conf)
+          rescue ex
+            STDERR.puts "Note: install 'qrencode' to render QR codes (#{ex.message})"
+            print client_conf
+          end
+        elsif out_path = context.output_file
+          File.write(out_path, client_conf)
+          File.chmod(out_path, 0o600)
+          puts "Client configuration written to: #{out_path} (mode 0600)"
+        else
+          puts ""
+          puts "Client configuration (save it now \u2014 the private key is NOT stored on the server):"
+          puts "--------------------------------------------------"
+          print client_conf
+          puts "--------------------------------------------------"
+          puts "Re-generate it later with: wgctl client #{peer_name} --rotate"
+        end
       end
 
       private def self.run_remote_add(context : CLI::Context, peer_name : String, target_iface : String?)

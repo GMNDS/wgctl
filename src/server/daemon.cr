@@ -83,6 +83,10 @@ module Wgctl
         unless has_tls
           puts "Security:    HTTP (Plaintext). Recommendation: Use behind HTTPS reverse proxy or provide --cert and --key."
         end
+        if !has_tls && @cors_origin == "*" && (@host == "0.0.0.0" || @host == "::" || @host == "[::]")
+          puts "Warning:     CORS is '*' while bound to all interfaces without TLS."
+          puts "             Consider --cors <origin>, a TLS-terminating reverse proxy, or --cert/--key."
+        end
         puts "=================================================="
         puts "Press Ctrl+C to stop."
 

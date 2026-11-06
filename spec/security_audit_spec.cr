@@ -1,5 +1,7 @@
 require "./spec_helper"
 require "../src/server/auth/token_store"
+require "../src/wireguard/firewall_manager"
+require "../src/models/metadata"
 
 describe "Security and Parser Hardening Audit" do
   describe "CRLF / INI Injection Defense" do
@@ -20,6 +22,39 @@ describe "Security and Parser Hardening Audit" do
 
       comments.should contain("# wgctl:name=malicious[Interface]PostUp=evil_command")
       comments.should contain("# wgctl:description=harmless[Peer]PublicKey=injected")
+    end
+
+    it "never persists client private keys in metadata comments" do
+      meta = Wgctl::Models::Metadata.new(
+        name: "phone",
+        client_private_key: "SECRET_PRIVATE_KEY_BASE64="
+      )
+
+      comments = meta.to_comments
+      comments.should contain("# wgctl:name=phone")
+      comments.any? { |l| l.includes?("client_private_key") }.should be_false
+      comments.any? { |l| l.includes?("SECRET_PRIVATE_KEY_BASE64") }.should be_false
+    end
+
+    it "rejects WAN interface names containing shell metacharacters" do
+      expect_raises(Exception, /Invalid WAN interface name/) do
+        Wgctl::WireGuard::FirewallManager.generate_post_up("eth0; rm -rf /")
+      end
+
+      expect_raises(Exception, /Invalid WAN interface name/) do
+        Wgctl::WireGuard::FirewallManager.generate_post_down("eth0`id`")
+      end
+
+      expect_raises(Exception, /Invalid WAN interface name/) do
+        Wgctl::WireGuard::FirewallManager.generate_post_up("$(reboot)")
+      end
+    end
+
+    it "accepts valid Linux interface names and rejects overlong ones" do
+      Wgctl::WireGuard::FirewallManager.valid_interface_name?("eth0").should be_true
+      Wgctl::WireGuard::FirewallManager.valid_interface_name?("ens3.100").should be_true
+      Wgctl::WireGuard::FirewallManager.valid_interface_name?("enp0s3").should be_true
+      Wgctl::WireGuard::FirewallManager.valid_interface_name?("verylonginterfacename").should be_false
     end
 
     it "rejects peer metadata containing newlines in Validator" do

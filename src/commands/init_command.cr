@@ -82,6 +82,8 @@ module Wgctl
         # 2. Detect and resolve Public IP
         detected_ip = WireGuard::SystemDetector.detect_public_ip
         public_ip = context.public_ip || detected_ip
+        # Allow `--public-ip auto` (used by the Docker entrypoint) to mean detection
+        public_ip = detected_ip if public_ip.downcase == "auto"
         if interactive && context.public_ip.nil?
           print "Server public IPv4 address or hostname [#{detected_ip}]: "
           STDOUT.flush
@@ -143,6 +145,11 @@ module Wgctl
           input = gets.to_s.strip
           first_client_name = input.empty? ? "client1" : input
         end
+
+        # Validate all user-supplied values before anything is written or executed.
+        validate_host_or_ip!("public IP/hostname", public_ip)
+        validate_cidr!("subnet", subnet)
+        validate_dns_list!("DNS", dns)
 
         puts ""
         puts "Initializing WireGuard server configuration..."
@@ -274,6 +281,32 @@ module Wgctl
         puts "  Run 'wgctl status' to view live peers"
         puts "  Run 'wgctl' or 'wgctl menu' to launch interactive management"
         puts "=================================================="
+      end
+
+      # Validates an IPv4 address or a DNS hostname.
+      private def self.validate_host_or_ip!(label : String, value : String)
+        pattern = /\A(?:[0-9]{1,3}(?:\.[0-9]{1,3}){3}|[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?)*)\z/
+        return if value =~ pattern
+        raise "Invalid #{label} '#{value}'. Expected an IPv4 address or a hostname."
+      end
+
+      # Validates an IPv4 CIDR subnet such as 10.13.14.1/24.
+      private def self.validate_cidr!(label : String, value : String)
+        pattern = /\A[0-9]{1,3}(?:\.[0-9]{1,3}){3}\/[0-9]{1,2}\z/
+        return if value =~ pattern
+        raise "Invalid #{label} '#{value}'. Expected an IPv4 CIDR (e.g. 10.13.14.1/24)."
+      end
+
+      # Validates a comma-separated list of DNS resolvers (IPv4, IPv6 or hostname).
+      private def self.validate_dns_list!(label : String, value : String)
+        entry_pattern = /\A(?:[0-9]{1,3}(?:\.[0-9]{1,3}){3}|[0-9a-fA-F:]{2,}|[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?)*)\z/
+        entries = value.split(",").map(&.strip).reject(&.empty?)
+        raise "Invalid #{label} '#{value}'." if entries.empty?
+        entries.each do |entry|
+          unless entry =~ entry_pattern
+            raise "Invalid #{label} entry '#{entry}'."
+          end
+        end
       end
     end
   end

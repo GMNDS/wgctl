@@ -29,6 +29,12 @@ module Wgctl
       # # wgctl:name=asteri-c
       # # wgctl:description=Contabo Germany
       # # wgctl:device=server
+      #
+      # NOTE: `client_private_key` is intentionally NEVER serialized. The server
+      # only needs the peer's public key, so persisting client private keys would
+      # turn a server compromise into a compromise of every client. The field is
+      # kept only to read legacy configs; it is dropped on the next save and can
+      # be regenerated on demand with `wgctl client <peer> --rotate`.
       def to_comments : Array(String)
         lines = [] of String
         if n = @name
@@ -39,9 +45,6 @@ module Wgctl
         end
         if dev = @device
           lines << "# wgctl:device=#{dev.gsub(/[\r\n]/, "").strip}"
-        end
-        if k = @client_private_key
-          lines << "# wgctl:client_private_key=#{k.gsub(/[\r\n]/, "").strip}"
         end
         @extra.each do |k, v|
           clean_k = k.gsub(/[^a-zA-Z0-9_\-]/, "")

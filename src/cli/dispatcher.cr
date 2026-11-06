@@ -106,6 +106,10 @@ module Wgctl
             context.qr_code = true
           end
 
+          opts.on("--rotate", "Generate a new client keypair and update the peer public key on the server") do
+            context.rotate = true
+          end
+
           opts.on("--no-apply", "Do not apply changes to active interface") do
             context.no_apply = true
           end

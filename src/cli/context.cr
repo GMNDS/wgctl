@@ -14,6 +14,7 @@ module Wgctl
       property qr_code : Bool = false
       def qr=(v : Bool); @qr_code = v; end
       def qr : Bool; @qr_code; end
+      property rotate : Bool = false
       property output_file : String?
       property ip : String?
       property description : String?

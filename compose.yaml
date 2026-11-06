@@ -45,8 +45,10 @@ services:
       # - WGCTL_NO_FIREWALL=false
 
       # Autenticação da REST API (escolha UMA das opções abaixo):
-      # Opção A: Token direto via ENV
-      - WGCTL_TOKEN=wgctl_tok_change_me_to_a_secure_token
+      # Opção A: Token direto via ENV (OBRIGATÓRIO definir um segredo forte, ex.:
+      #          export WGCTL_TOKEN="$(openssl rand -hex 24)" antes de subir).
+      #          O compose falha de propósito se a variável não estiver definida.
+      - WGCTL_TOKEN=${WGCTL_TOKEN:?Defina WGCTL_TOKEN com um segredo forte antes de subir}
       # Opção B: Token via Docker Secret file
       # - WGCTL_TOKEN_FILE=/run/secrets/wgctl_token
 

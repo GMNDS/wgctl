@@ -238,6 +238,9 @@ module Wgctl
           description = body["description"]?.try(&.as_s.strip)
           keepalive = body["keepalive"]?.try(&.as_i) || 25
 
+          # The generated private key is kept in memory only so the response can
+          # hand the client config back once. Metadata never serializes it, so it
+          # is NOT written to the server .conf (zero-knowledge).
           metadata = Models::Metadata.new(
             name: name,
             description: description,

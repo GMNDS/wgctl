@@ -38,7 +38,9 @@ if (-not $version -or $version -eq "latest") {
         $latest = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/latest" -Headers @{ "User-Agent" = "wgctl-installer" }
         $version = $latest.tag_name
     } catch {
-        $version = "v0.5.1"
+        Write-Host "Error: could not determine the latest version for $repo." -ForegroundColor Red
+        Write-Host "Set it explicitly, e.g.: `$env:VERSION=\"v0.6.0\"; irm ... | iex"
+        exit 1
     }
 }
 
@@ -59,15 +61,49 @@ if (-not (Test-Path $installDir)) {
 $tempFile = [System.IO.Path]::GetTempFileName()
 try {
     Invoke-WebRequest -Uri $downloadUrl -OutFile $tempFile -UseBasicParsing
-    Move-Item -Path $tempFile -Destination $destPath -Force
 } catch {
-    Write-Error "Download failed. Please check your internet connection or tag: $version"
+    Write-Host "Download failed. Please check your internet connection or tag: $version" -ForegroundColor Red
+    if (Test-Path $tempFile) { Remove-Item -Path $tempFile -Force -ErrorAction SilentlyContinue }
     exit 1
-} finally {
-    if (Test-Path $tempFile) {
-        Remove-Item -Path $tempFile -Force -ErrorAction SilentlyContinue
-    }
 }
+
+# 5. Verify the downloaded binary against the published SHA-256 checksum
+if ($env:WGCTL_SKIP_CHECKSUM -eq "1") {
+    Write-Host "Warning: skipping checksum verification (WGCTL_SKIP_CHECKSUM=1)." -ForegroundColor Yellow
+} else {
+    $checksumsUrl = "https://github.com/$repo/releases/download/$version/checksums.txt"
+    $checksumsText = $null
+    try {
+        $checksumsText = Invoke-RestMethod -Uri $checksumsUrl -Headers @{ "User-Agent" = "wgctl-installer" }
+    } catch {
+        Write-Host "Error: could not download checksums from $checksumsUrl" -ForegroundColor Red
+        Remove-Item -Path $tempFile -Force -ErrorAction SilentlyContinue
+        exit 1
+    }
+
+    $expectedHash = ($checksumsText -split "`n" |
+        Where-Object { $_ -match "\s$([regex]::Escape($assetName))\s*$" } |
+        ForEach-Object { ($_ -split '\s+')[0] } |
+        Select-Object -First 1)
+
+    if (-not $expectedHash) {
+        Write-Host "Error: no checksum entry found for $assetName" -ForegroundColor Red
+        Remove-Item -Path $tempFile -Force -ErrorAction SilentlyContinue
+        exit 1
+    }
+
+    $actualHash = (Get-FileHash -Algorithm SHA256 -Path $tempFile).Hash.ToLower()
+    if ($actualHash -ne $expectedHash.Trim().ToLower()) {
+        Write-Host "Checksum mismatch for $assetName!" -ForegroundColor Red
+        Write-Host "  expected: $expectedHash"
+        Write-Host "  actual:   $actualHash"
+        Remove-Item -Path $tempFile -Force -ErrorAction SilentlyContinue
+        exit 1
+    }
+    Write-Host "[OK] Checksum verified (SHA-256)." -ForegroundColor Green
+}
+
+Move-Item -Path $tempFile -Destination $destPath -Force
 
 # 5. Add to User PATH if not already present
 $userPath = [Environment]::GetEnvironmentVariable("Path", [EnvironmentVariableTarget]::User)

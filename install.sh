@@ -68,7 +68,9 @@ if [ -z "${VERSION}" ] || [ "${VERSION}" = "latest" ]; then
   fi
 
   if [ -z "${VERSION}" ]; then
-    VERSION="v0.1.0"
+    echo -e "${RED}Error: could not determine the latest version for ${REPO}.${NC}"
+    echo "Set it explicitly, e.g.: VERSION=v0.6.0 bash install.sh"
+    exit 1
   fi
 fi
 
@@ -103,6 +105,46 @@ else
 fi
 
 chmod +x "${TMP_FILE}"
+
+# 4b. Verify the downloaded binary against the published SHA-256 checksum
+CHECKSUMS_URL="https://github.com/${REPO}/releases/download/${VERSION}/checksums.txt"
+CHECKSUMS_FILE="${TMP_DIR}/checksums.txt"
+
+if [ "${WGCTL_SKIP_CHECKSUM:-0}" = "1" ]; then
+  echo -e "${YELLOW}Warning: skipping checksum verification (WGCTL_SKIP_CHECKSUM=1).${NC}"
+else
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL -o "${CHECKSUMS_FILE}" "${CHECKSUMS_URL}" || {
+      echo -e "${RED}Error: could not download checksums from ${CHECKSUMS_URL}.${NC}"
+      exit 1
+    }
+  else
+    wget -qO "${CHECKSUMS_FILE}" "${CHECKSUMS_URL}" || {
+      echo -e "${RED}Error: could not download checksums from ${CHECKSUMS_URL}.${NC}"
+      exit 1
+    }
+  fi
+
+  EXPECTED_HASH="$(grep -E "[[:space:]]${ASSET_NAME}$" "${CHECKSUMS_FILE}" | awk '{print $1}' | head -n1)"
+  if [ -z "${EXPECTED_HASH}" ]; then
+    echo -e "${RED}Error: no checksum entry found for ${ASSET_NAME}.${NC}"
+    exit 1
+  fi
+
+  if command -v sha256sum >/dev/null 2>&1; then
+    ACTUAL_HASH="$(sha256sum "${TMP_FILE}" | awk '{print $1}')"
+  else
+    ACTUAL_HASH="$(shasum -a 256 "${TMP_FILE}" | awk '{print $1}')"
+  fi
+
+  if [ "${EXPECTED_HASH}" != "${ACTUAL_HASH}" ]; then
+    echo -e "${RED}Checksum mismatch for ${ASSET_NAME}!${NC}"
+    echo "  expected: ${EXPECTED_HASH}"
+    echo "  actual:   ${ACTUAL_HASH}"
+    exit 1
+  fi
+  echo -e "${GREEN}✓ Checksum verified (SHA-256).${NC}"
+fi
 
 # 5. Install to BIN_DIR
 mkdir -p "${BIN_DIR}" 2>/dev/null || sudo mkdir -p "${BIN_DIR}"

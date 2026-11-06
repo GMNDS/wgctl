@@ -65,6 +65,10 @@ describe "wgctl Headless REST API" do
       unauth_json["success"].as_bool.should be_false
       unauth_json["error"]["code"].as_s.should eq("UNAUTHORIZED")
 
+      # 3b. A token in the query string must NOT authenticate non-WebSocket requests
+      res_query_token = HTTP::Client.get("http://127.0.0.1:#{port}/api/v1/interfaces?token=#{raw_token}")
+      res_query_token.status_code.should eq(401)
+
       # 4. Test Authenticated request with Bearer token
       headers = HTTP::Headers{
         "Authorization" => "Bearer #{raw_token}",

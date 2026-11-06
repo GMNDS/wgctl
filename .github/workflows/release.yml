@@ -115,6 +115,14 @@ jobs:
       - name: List Release Assets
         run: ls -lh release-assets/
 
+      - name: Generate SHA-256 checksums
+        run: |
+          cd release-assets
+          rm -f checksums.txt
+          sha256sum * > checksums.txt
+          echo "----- checksums.txt -----"
+          cat checksums.txt
+
       - name: Publish GitHub Release via gh CLI
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

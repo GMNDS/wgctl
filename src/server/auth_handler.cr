@@ -28,7 +28,7 @@ module Wgctl
         raw_token = extract_token(context.request)
 
         if raw_token.nil? || raw_token.empty?
-          respond_unauthorized(context, "Missing Bearer token in Authorization header or 'token' query parameter")
+          respond_unauthorized(context, "Missing Bearer token. Provide it via the Authorization header (WebSocket clients may use the 'token' query parameter).")
           return
         end
 
@@ -43,22 +43,31 @@ module Wgctl
       end
 
       private def extract_token(request : HTTP::Request) : String?
-        # 1. Check Authorization: Bearer <token>
+        # 1. Preferred: Authorization: Bearer <token>
         if auth_header = request.headers["Authorization"]?
           if auth_header.starts_with?("Bearer ")
             return auth_header[7..-1].strip
           end
         end
 
-        # 2. Check query parameter ?token=<token>
-        if query = request.query
-          params = URI::Params.parse(query)
-          if t = params["token"]?
-            return t.strip unless t.strip.empty?
+        # 2. A token in the query string is ONLY tolerated for browser WebSocket
+        #    upgrades on the live endpoint, because browsers cannot set custom
+        #    headers during the WebSocket handshake. Everywhere else the token
+        #    must travel in the Authorization header (never in URLs/logs).
+        if websocket_upgrade?(request) && request.path.ends_with?("/live")
+          if query = request.query
+            params = URI::Params.parse(query)
+            if t = params["token"]?
+              return t.strip unless t.strip.empty?
+            end
           end
         end
 
         nil
+      end
+
+      private def websocket_upgrade?(request : HTTP::Request) : Bool
+        request.headers["Upgrade"]?.try(&.downcase) == "websocket"
       end
 
       private def respond_unauthorized(context : HTTP::Server::Context, message : String)

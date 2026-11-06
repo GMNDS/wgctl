@@ -15,11 +15,13 @@ All responses follow the envelope `{"success": true, "data": ...}` or `{"success
 
 ## Autenticação
 
-Todas as rotas (exceto `/health`) exigem autenticação via token Bearer no header `Authorization` ou no query parameter `?token=<token>`:
+Todas as rotas (exceto `/health`) exigem autenticação via token Bearer no header `Authorization`:
 
 ```http
 Authorization: Bearer <token>
 ```
+
+> A única exceção é o handshake do WebSocket `/interfaces/:name/live`, que também aceita `?token=<token>` porque navegadores não permitem headers customizados nesse handshake.
 
 Para gerar um novo token de acesso no servidor WireGuard:
 ```bash
