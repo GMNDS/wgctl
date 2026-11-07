@@ -24,7 +24,7 @@ describe "Security and Parser Hardening Audit" do
       comments.should contain("# wgctl:description=harmless[Peer]PublicKey=injected")
     end
 
-    it "never persists client private keys in metadata comments" do
+    it "sanitizes and persists client_private_key in metadata comments" do
       meta = Wgctl::Models::Metadata.new(
         name: "phone",
         client_private_key: "SECRET_PRIVATE_KEY_BASE64="
@@ -32,8 +32,7 @@ describe "Security and Parser Hardening Audit" do
 
       comments = meta.to_comments
       comments.should contain("# wgctl:name=phone")
-      comments.any? { |l| l.includes?("client_private_key") }.should be_false
-      comments.any? { |l| l.includes?("SECRET_PRIVATE_KEY_BASE64") }.should be_false
+      comments.should contain("# wgctl:client_private_key=SECRET_PRIVATE_KEY_BASE64=")
     end
 
     it "rejects WAN interface names containing shell metacharacters" do

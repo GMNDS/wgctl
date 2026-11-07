@@ -54,16 +54,20 @@ module Wgctl
         client_priv : String
 
         if context.rotate
-          # Zero-knowledge: the server does not store client private keys, so
-          # regeneration means issuing a fresh keypair and updating the peer's
-          # public key on the server (with backup + live sync).
           client_priv = rotate_peer_keys(iface, peer, context)
         else
           client_priv = peer.metadata.client_private_key || ""
           if client_priv.strip.empty?
-            STDERR.puts "Note: the client private key is not stored on the server (zero-knowledge)."
-            STDERR.puts "Run 'wgctl client #{peer.name} --rotate' to generate a new keypair and update the server."
-            client_priv = "<REPLACE_WITH_CLIENT_PRIVATE_KEY>"
+            if context.qr_code
+              # WireGuard mobile clients require a valid 32-byte base64 private key.
+              # If no private key is stored, generate a fresh keypair so the QR code is valid and scannable.
+              STDERR.puts "Generating a new client keypair for '#{peer.name}'..."
+              client_priv = rotate_peer_keys(iface, peer, context)
+            else
+              STDERR.puts "Note: the client private key is not stored for '#{peer.name}'."
+              STDERR.puts "Run 'wgctl client #{peer.name} --rotate' to generate a new keypair and update the server."
+              client_priv = "<REPLACE_WITH_CLIENT_PRIVATE_KEY>"
+            end
           end
         end
 
@@ -75,8 +79,13 @@ module Wgctl
           File.chmod(out_path, 0o600)
           puts "Client configuration written to: #{out_path} (mode 0600)"
         elsif context.qr_code
-          qr = WireGuard::Runner.generate_qr_terminal(output_str)
-          puts qr
+          begin
+            qr = WireGuard::Runner.generate_qr_terminal(output_str)
+            puts qr
+          rescue ex
+            STDERR.puts "Note: install 'qrencode' to render QR codes (#{ex.message})"
+            print output_str
+          end
         else
           print output_str
         end
@@ -138,7 +147,7 @@ module Wgctl
         old_pub = peer.public_key
 
         peer.public_key = new_pub
-        peer.metadata.client_private_key = nil
+        peer.metadata.client_private_key = new_priv
 
         report = Config::Validator.validate(iface)
         unless report.valid?

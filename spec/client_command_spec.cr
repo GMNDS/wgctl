@@ -203,4 +203,74 @@ describe "wgctl client" do
 
     FileUtils.rm_rf(tmp_dir)
   end
+
+  it "renders stored client_private_key in client configuration" do
+    tmp_dir = File.tempfile("client_test_stored_priv", "").path
+    File.delete(tmp_dir) rescue nil
+    Dir.mkdir_p(tmp_dir)
+
+    config_path = File.join(tmp_dir, "wg0.conf")
+    output_path = File.join(tmp_dir, "phone.conf")
+    priv_key = "aGVsYW1vcmV4YW1wbGVwcml2YXRla2V5MTIzNDU2Nzg5MD0="
+    File.write(config_path, <<-CONF
+    [Interface]
+    Address = 10.13.14.1/24
+    ListenPort = 51820
+    PrivateKey = server-private-key
+
+    # wgctl:name=phone
+    # wgctl:client_private_key=#{priv_key}
+    [Peer]
+    PublicKey = phone-public-key
+    AllowedIPs = 10.13.14.2/32
+    CONF
+    )
+
+    ctx = Wgctl::CLI::Context.new
+    ctx.config_file = config_path
+    ctx.output_file = output_path
+
+    Wgctl::Commands::ClientCommand.run(ctx, ["phone"])
+
+    output = File.read(output_path)
+    output.should contain("PrivateKey = #{priv_key}")
+    output.should_not contain("<REPLACE_WITH_CLIENT_PRIVATE_KEY>")
+
+    FileUtils.rm_rf(tmp_dir)
+  end
+
+  it "auto-generates valid 32-byte keypair when generating QR code for peer without stored key" do
+    tmp_dir = File.tempfile("client_test_qr_auto_rotate", "").path
+    File.delete(tmp_dir) rescue nil
+    Dir.mkdir_p(tmp_dir)
+
+    config_path = File.join(tmp_dir, "wg0.conf")
+    File.write(config_path, <<-CONF
+    [Interface]
+    Address = 10.13.14.1/24
+    ListenPort = 51820
+    PrivateKey = server-private-key
+
+    # wgctl:name=nopriv
+    [Peer]
+    PublicKey = nopriv-public-key
+    AllowedIPs = 10.13.14.2/32
+    CONF
+    )
+
+    ctx = Wgctl::CLI::Context.new
+    ctx.config_file = config_path
+    ctx.qr_code = true
+    ctx.no_apply = true
+
+    # Should not raise, should auto-rotate and generate a valid key
+    Wgctl::Commands::ClientCommand.run(ctx, ["nopriv"])
+
+    # Reload config to verify the new private key and public key were saved
+    updated_conf = File.read(config_path)
+    updated_conf.should contain("# wgctl:client_private_key=")
+    updated_conf.should_not contain("nopriv-public-key")
+
+    FileUtils.rm_rf(tmp_dir)
+  end
 end

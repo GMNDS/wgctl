@@ -141,11 +141,11 @@ module Wgctl
           puts "Client configuration written to: #{out_path} (mode 0600)"
         else
           puts ""
-          puts "Client configuration (save it now \u2014 the private key is NOT stored on the server):"
+          puts "Client configuration:"
           puts "--------------------------------------------------"
           print client_conf
           puts "--------------------------------------------------"
-          puts "Re-generate it later with: wgctl client #{peer_name} --rotate"
+          puts "Show QR code anytime with: wgctl client #{peer_name} --qr"
         end
       end
 
