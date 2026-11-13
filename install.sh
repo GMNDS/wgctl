@@ -69,7 +69,7 @@ if [ -z "${VERSION}" ] || [ "${VERSION}" = "latest" ]; then
 
   if [ -z "${VERSION}" ]; then
     echo -e "${RED}Error: could not determine the latest version for ${REPO}.${NC}"
-    echo "Set it explicitly, e.g.: VERSION=v0.6.2 bash install.sh"
+    echo "Set it explicitly, e.g.: VERSION=v0.6.3 bash install.sh"
     exit 1
   fi
 fi

@@ -40,6 +40,26 @@ module Wgctl
         nil
       end
 
+      # Returns true if directory exists and is writable
+      def self.writable_dir?(dir : String) : Bool
+        return false unless Dir.exists?(dir)
+        test_file = File.join(dir, ".wgctl_write_test_#{Random::Secure.hex(4)}")
+        File.write(test_file, "")
+        File.delete(test_file)
+        true
+      rescue
+        false
+      end
+
+      # Returns the temporary file path used for syncconf.
+      # Placed in the configuration directory when writable to satisfy AppArmor restrictions.
+      def self.syncconf_temp_path(interface_name : String, config_path : String) : String
+        conf_dir = File.dirname(File.expand_path(config_path))
+        target_dir = writable_dir?(conf_dir) ? conf_dir : Dir.tempdir
+        temp_filename = ".wgctl-sync-#{interface_name}-#{Process.pid}-#{Random::Secure.hex(4)}.conf"
+        File.join(target_dir, temp_filename)
+      end
+
       # Syncs live interface using `wg-quick strip` and `wg syncconf`
       # without dropping existing tunnels!
       def self.apply_syncconf(interface_name : String, config_path : String) : Tuple(Bool, String)
@@ -76,25 +96,35 @@ module Wgctl
 
         stripped_content = cleaned_lines.join("\n")
 
-        # 2. Write stripped configuration to a secure temporary file
-        temp_file = File.tempfile("wgctl-strip-#{interface_name}", ".conf")
+        # 2. Write stripped configuration to a secure temporary file in the configuration directory.
+        # Ubuntu/Debian default AppArmor profiles confine `/usr/bin/wg` to only read files
+        # within `/etc/wireguard/**`. Writing to `/tmp` results in `fopen: Permission denied`
+        # even when executed under sudo/root.
+        # Placing the temporary stripped file in the same directory as config_path (e.g. /etc/wireguard/)
+        # ensures `wg` is granted read permissions by AppArmor.
+        temp_path = syncconf_temp_path(interface_name, config_path)
+
         begin
-          File.chmod(temp_file.path, 0o600)
-          File.write(temp_file.path, stripped_content)
+          File.write(temp_path, stripped_content)
+          File.chmod(temp_path, 0o600)
 
           # 3. Run `wg syncconf <interface_name> <temp_file>`
           sync_stdout = IO::Memory.new
           sync_stderr = IO::Memory.new
-          sync_status = Process.run("wg", ["syncconf", interface_name, temp_file.path], output: sync_stdout, error: sync_stderr)
+          sync_status = Process.run("wg", ["syncconf", interface_name, temp_path], output: sync_stdout, error: sync_stderr)
 
           if sync_status.success?
             {true, "Applied configuration to active interface #{interface_name} via wg syncconf."}
           else
             err = sync_stderr.to_s.strip
-            {false, "wg syncconf failed: #{err}"}
+            if err.includes?("fopen: Permission denied") || err.includes?("Permission denied")
+              {false, "wg syncconf failed: #{err} (AppArmor may be confining /usr/bin/wg. Check 'sudo dmesg | grep -i apparmor' or run 'sudo aa-complain /etc/apparmor.d/wg')"}
+            else
+              {false, "wg syncconf failed: #{err}"}
+            end
           end
         ensure
-          temp_file.delete rescue nil
+          File.delete(temp_path) if temp_path && File.exists?(temp_path) rescue nil
         end
       rescue ex
         {false, "Failed to apply configuration: #{ex.message}"}
